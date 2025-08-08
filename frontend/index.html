@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delicious Bites Restaurant</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-utensils"></i>
+                <span>Delicious Bites</span>
+            </div>
+            <ul class="nav-menu" id="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('welcome')">
+                        <i class="fas fa-home"></i> Home
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('menu')">
+                        <i class="fas fa-utensils"></i> Menu
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('about')">
+                        <i class="fas fa-info-circle"></i> About
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('contact')">
+                        <i class="fas fa-phone"></i> Contact
+                    </a>
+                </li>
+            </ul>
+            <div class="nav-toggle" id="nav-toggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Welcome Section -->
+    <section id="welcome-section" class="section active">
+        <div class="hero-container">
+            <div class="hero-background">
+                <div class="hero-overlay"></div>
+            </div>
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        <span class="welcome-text">Welcome to</span>
+                        <span class="restaurant-name">Delicious Bites</span>
+                    </h1>
+                    <p class="hero-subtitle">Experience the finest flavors and exceptional dining</p>
+                    <div class="hero-features">
+                        <div class="feature-item">
+                            <i class="fas fa-star"></i>
+                            <span>Premium Quality</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-clock"></i>
+                            <span>Fast Service</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-heart"></i>
+                            <span>Made with Love</span>
+                        </div>
+                    </div>
+                    <div class="hero-buttons">
+                        <button class="btn btn-primary" onclick="showSection('menu')">
+                            <i class="fas fa-utensils"></i>
+                            View Menu
+                        </button>
+                        <button class="btn btn-secondary" onclick="showSection('about')">
+                            <i class="fas fa-info-circle"></i>
+                            Learn More
+                        </button>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <div class="floating-card">
+                        <div class="food-image">
+                            <i class="fas fa-pizza-slice food-icon"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Today's Special</h3>
+                            <p>Chef's signature dishes</p>
+                            <div class="price-tag">Starting ₹99</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-number" data-target="1000">0</div>
+                <div class="stat-label">Happy Customers</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <div class="stat-number" data-target="50">0</div>
+                <div class="stat-label">Menu Items</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-award"></i>
+                </div>
+                <div class="stat-number" data-target="5">0</div>
+                <div class="stat-label">Years Experience</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-number" data-target="24">0</div>
+                <div class="stat-label">Hours Open</div>
+            </div>
+        </div>
+
+        <!-- Special Offers -->
+        <div class="offers-section">
+            <h2 class="section-title">Special Offers</h2>
+            <div class="offers-grid">
+                <div class="offer-card">
+                    <div class="offer-badge">20% OFF</div>
+                    <div class="offer-icon">
+                        <i class="fas fa-pizza-slice"></i>
+                    </div>
+                    <h3>Weekend Special</h3>
+                    <p>Get 20% off on all orders above ₹500 during weekends</p>
+                    <button class="offer-btn" onclick="showSection('menu')">Order Now</button>
+                </div>
+                <div class="offer-card">
+                    <div class="offer-badge">FREE</div>
+                    <div class="offer-icon">
+                        <i class="fas fa-shipping-fast"></i>
+                    </div>
+                    <h3>Free Delivery</h3>
+                    <p>Free home delivery for orders above ₹300 within 5km</p>
+                    <button class="offer-btn" onclick="showSection('menu')">Order Now</button>
+                </div>
+                <div class="offer-card">
+                    <div class="offer-badge">NEW</div>
+                    <div class="offer-icon">
+                        <i class="fas fa-birthday-cake"></i>
+                    </div>
+                    <h3>Birthday Special</h3>
+                    <p>Complimentary dessert on your birthday with valid ID</p>
+                    <button class="offer-btn" onclick="showSection('contact')">Learn More</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Menu Section -->
+    <section id="menu-section" class="section">
+        <div class="menu-header">
+            <h1 class="page-title">Our Delicious Menu</h1>
+            <p class="page-subtitle">Discover our mouth-watering dishes</p>
+        </div>
+
+        <div class="menu-container">
+            <div class="menu-sidebar">
+                <!-- Customer Info Section -->
+                <div class="customer-info-card">
+                    <h3><i class="fas fa-user"></i> Customer Information</h3>
+                    <div class="input-group">
+                        <input type="text" id="customer-name" placeholder="Your Name" maxlength="100">
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+                    <div class="input-group">
+                        <input type="tel" id="customer-phone" placeholder="Phone Number" maxlength="15">
+                        <i class="fas fa-phone input-icon"></i>
+                    </div>
+                </div>
+
+                <!-- Order Summary -->
+                <div class="order-summary" id="order-summary" style="display: none;">
+                    <h3><i class="fas fa-shopping-cart"></i> Order Summary</h3>
+                    <div id="order-items"></div>
+                    <div class="order-total">
+                        <div class="total-line">
+                            <span>Subtotal:</span>
+                            <span id="subtotal">₹0.00</span>
+                        </div>
+                        <div class="total-line">
+                            <span>Tax (15%):</span>
+                            <span id="tax-amount">₹0.00</span>
+                        </div>
+                        <div class="total-line total-final">
+                            <span>Total:</span>
+                            <span id="final-total">₹0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-main">
+                <div class="loading" id="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading delicious menu...</p>
+                </div>
+                <div class="error-message" id="error-message" style="display: none;"></div>
+                
+                <div class="menu-categories" id="menu-buttons" style="display: none;">
+                    <button class="category-btn" onclick="showMenu('breakfast')" data-category="breakfast">
+                        <i class="fas fa-coffee"></i>
+                        <span>Breakfast</span>
+                    </button>
+                    <button class="category-btn" onclick="showMenu('lunch')" data-category="lunch">
+                        <i class="fas fa-hamburger"></i>
+                        <span>Lunch</span>
+                    </button>
+                    <button class="category-btn" onclick="showMenu('snacks')" data-category="snacks">
+                        <i class="fas fa-cookie-bite"></i>
+                        <span>Snacks</span>
+                    </button>
+                    <button class="category-btn" onclick="showMenu('dinner')" data-category="dinner">
+                        <i class="fas fa-drumstick-bite"></i>
+                        <span>Dinner</span>
+                    </button>
+                    <button class="category-btn" onclick="showMenu('beverages')" data-category="beverages">
+                        <i class="fas fa-glass-cheers"></i>
+                        <span>Beverages</span>
+                    </button>
+                    <button class="category-btn" onclick="showMenu('icecreams')" data-category="icecreams">
+                        <i class="fas fa-ice-cream"></i>
+                        <span>Ice Creams</span>
+                    </button>
+                </div>
+                
+                <div id="menu-content" class="menu-content"></div>
+                
+                <div class="menu-actions">
+                    <button class="btn btn-primary btn-large" id="calculate-button" onclick="calculateFinalCost()" style="display: none;">
+                        <i class="fas fa-calculator"></i>
+                        Generate Bill
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Receipt Modal -->
+        <div class="modal" id="receipt-modal">
+            <div class="modal-content receipt-container">
+                <div class="modal-header">
+                    <h2><i class="fas fa-receipt"></i> Order Receipt</h2>
+                    <button class="modal-close" onclick="closeReceiptModal()">&times;</button>
+                </div>
+                <div class="receipt-content">
+                    <div class="restaurant-info">
+                        <h3>Delicious Bites Restaurant</h3>
+                        <p>123 Food Street, Flavor City</p>
+                        <p>Phone: +91 76720 00985</p>
+                    </div>
+                    <hr>
+                    <div class="customer-details" id="customer-details"></div>
+                    <div id="receipt-content"></div>
+                    <div class="receipt-footer">
+                        <p><strong>Payment Mode:</strong> Cash</p>
+                        <p class="thank-you">Thank you for dining with us!</p>
+                        <p class="visit-again">Have a wonderful day!</p>
+                    </div>
+                </div>
+                <div class="receipt-actions">
+                    <button class="btn btn-success" onclick="placeOrder()">
+                        <i class="fas fa-check"></i>
+                        Place Order
+                    </button>
+                    <button class="btn btn-secondary" onclick="printReceipt()">
+                        <i class="fas fa-print"></i>
+                        Print Receipt
+                    </button>
+                </div>
+                <div id="order-status"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about-section" class="section">
+        <div class="about-container">
+            <div class="about-header">
+                <h1 class="page-title">About Delicious Bites</h1>
+                <p class="page-subtitle">Our story of culinary excellence</p>
+            </div>
+            
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>Our Story</h2>
+                    <p>Designed by Chidari Sai Krishna.Delicious Bites has been serving authentic and delicious food to our community. We believe in using fresh, locally sourced ingredients to create memorable dining experiences.</p>
+                    
+                    <h3>Our Mission</h3>
+                    <p>To provide exceptional food and service that brings people together and creates lasting memories.</p>
+                    
+                    <div class="about-features">
+                        <div class="feature">
+                            <i class="fas fa-leaf"></i>
+                            <div>
+                                <h4>Fresh Ingredients</h4>
+                                <p>We source the freshest ingredients daily from local farmers and suppliers.</p>
+                            </div>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-users"></i>
+                            <div>
+                                <h4>Expert Chefs</h4>
+                                <p>Our experienced chefs bring years of culinary expertise to every dish.</p>
+                            </div>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-heart"></i>
+                            <div>
+                                <h4>Made with Love</h4>
+                                <p>Every dish is prepared with care and attention to detail.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-image">
+                    <div class="image-placeholder">
+                        <i class="fas fa-utensils"></i>
+                        <p>Our Kitchen</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Table Booking Section -->
+    <!-- Contact Section -->
+    <section id="contact-section" class="section">
+        <div class="contact-container">
+            <div class="contact-header">
+                <h1 class="page-title">Contact Us</h1>
+                <p class="page-subtitle">Get in touch with us</p>
+            </div>
+            
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="contact-card">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <h3>Address</h3>
+                        <p>123 Food Street<br>Flavor City, FC 12345</p>
+                    </div>
+                    
+                    <div class="contact-card">
+                        <i class="fas fa-phone"></i>
+                        <h3>Phone</h3>
+                        <p>+91 76720 00985<br>+91 98765 43210</p>
+                    </div>
+                    
+                    <div class="contact-card">
+                        <i class="fas fa-envelope"></i>
+                        <h3>Email</h3>
+                        <p>info@deliciousbites.com<br>orders@deliciousbites.com</p>
+                    </div>
+                    
+                    <div class="contact-card">
+                        <i class="fas fa-clock"></i>
+                        <h3>Hours</h3>
+                        <p>Mon-Thu: 11AM-10PM<br>Fri-Sat: 11AM-11PM<br>Sun: 12PM-9PM</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <!-- Admin Panel -->
+    <div class="admin-panel" id="admin-panel">
+        <div class="admin-header">
+            <h3><i class="fas fa-cog"></i> Admin Panel</h3>
+            <button class="admin-toggle" onclick="toggleAdminPanel()">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+        <div id="admin-content" style="display: none;">
+            <div class="admin-tabs">
+                <button onclick="showAdminTab('orders')" class="admin-tab-btn active">
+                    <i class="fas fa-shopping-cart"></i> Orders
+                </button>
+                <button onclick="showAdminTab('stats')" class="admin-tab-btn">
+                    <i class="fas fa-chart-bar"></i> Statistics
+                </button>
+            </div>
+            
+            <div id="admin-orders" class="admin-tab-content">
+                <div class="admin-controls">
+                    <select id="status-filter" onchange="filterOrdersByStatus()">
+                        <option value="">All Orders</option>
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="preparing">Preparing</option>
+                        <option value="ready">Ready</option>
+                        <option value="delivered">Delivered</option>
+                    </select>
+                    <button onclick="loadRecentOrders()" class="btn btn-small">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+                <div id="orders-list"></div>
+            </div>
+            
+            <div id="admin-stats" class="admin-tab-content" style="display: none;">
+                <div id="stats-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Newsletter Signup -->
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <i class="fas fa-utensils"></i>
+                    <span>Delicious Bites</span>
+                </div>
+                <p>Experience the finest flavors and exceptional dining at our restaurant.</p>
+            </div>
+            
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#" onclick="showSection('welcome')">Home</a></li>
+                    <li><a href="#" onclick="showSection('menu')">Menu</a></li>
+                    <li><a href="#" onclick="showSection('about')">About</a></li>
+                    <li><a href="#" onclick="showSection('contact')">Contact</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h4>Contact Info</h4>
+                <div class="contact-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>123 Food Street, Flavor City</span>
+                </div>
+                <div class="contact-item">
+                    <i class="fas fa-phone"></i>
+                    <span>+91 7672000985</span>
+                </div>
+                <div class="contact-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>chidarisai2004@gmail.com</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2025 Delicious Bites Restaurant. All rights reserved. Created by Chidari Sai Krishna.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

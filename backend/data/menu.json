@@ -1,0 +1,102 @@
+{
+  "breakfast": [
+    { "id": 1, "name": "Idli", "price": 30, "description": "Steamed rice cakes", "category": "breakfast" },
+    { "id": 2, "name": "Dosa", "price": 25, "description": "Crispy rice pancake", "category": "breakfast" },
+    { "id": 3, "name": "Poha", "price": 40, "description": "Flattened rice dish", "category": "breakfast" },
+    { "id": 4, "name": "Upma", "price": 30, "description": "Semolina breakfast dish", "category": "breakfast" },
+    { "id": 5, "name": "Vada", "price": 20, "description": "Deep fried lentil donuts", "category": "breakfast" },
+    { "id": 6, "name": "Puri", "price": 40, "description": "Deep fried bread", "category": "breakfast" }
+  ],
+  "lunch": [
+    { "id": 7, "name": "Meals", "price": 100, "description": "Traditional South Indian meals", "category": "lunch" },
+    { "id": 8, "name": "Egg Biryani", "price": 125, "description": "Fragrant rice with eggs", "category": "lunch" },
+    { "id": 9, "name": "Chicken Biryani", "price": 150, "description": "Aromatic chicken rice", "category": "lunch" },
+    {
+      "id": 10,
+      "name": "Egg Fried Rice",
+      "price": 110,
+      "description": "Stir-fried rice with eggs",
+      "category": "lunch"
+    },
+    {
+      "id": 11,
+      "name": "Chicken Fried Rice",
+      "price": 120,
+      "description": "Stir-fried rice with chicken",
+      "category": "lunch"
+    },
+    {
+      "id": 12,
+      "name": "Mushroom Biryani",
+      "price": 170,
+      "description": "Vegetarian biryani with mushrooms",
+      "category": "lunch"
+    }
+  ],
+  "snacks": [
+    { "id": 13, "name": "Bhel Puri", "price": 30, "description": "Puffed rice snack", "category": "snacks" },
+    { "id": 14, "name": "Samosa", "price": 25, "description": "Deep fried pastry", "category": "snacks" },
+    { "id": 15, "name": "Pani Puri", "price": 40, "description": "Water filled crispy shells", "category": "snacks" }
+  ],
+  "dinner": [
+    {
+      "id": 16,
+      "name": "Gobi Manchurian",
+      "price": 60,
+      "description": "Indo-Chinese cauliflower dish",
+      "category": "dinner"
+    },
+    {
+      "id": 17,
+      "name": "Mattar Paneer",
+      "price": 75,
+      "description": "Peas and cottage cheese curry",
+      "category": "dinner"
+    },
+    { "id": 18, "name": "Roti+Curry", "price": 85, "description": "Flatbread with curry", "category": "dinner" },
+    {
+      "id": 19,
+      "name": "Butter Naan+Curry",
+      "price": 95,
+      "description": "Butter naan with curry",
+      "category": "dinner"
+    }
+  ],
+  "beverages": [
+    { "id": 20, "name": "Lemonade", "price": 15, "description": "Fresh lemon drink", "category": "beverages" },
+    { "id": 21, "name": "Apple Juice", "price": 40, "description": "Fresh apple juice", "category": "beverages" },
+    { "id": 22, "name": "Grape Juice", "price": 50, "description": "Fresh grape juice", "category": "beverages" },
+    { "id": 23, "name": "Sprite", "price": 20, "description": "Lemon-lime soda", "category": "beverages" },
+    {
+      "id": 24,
+      "name": "Chocolate Milkshake",
+      "price": 70,
+      "description": "Rich chocolate shake",
+      "category": "beverages"
+    }
+  ],
+  "icecreams": [
+    { "id": 25, "name": "Vanilla", "price": 20, "description": "Classic vanilla ice cream", "category": "icecreams" },
+    {
+      "id": 26,
+      "name": "Strawberry",
+      "price": 40,
+      "description": "Fresh strawberry ice cream",
+      "category": "icecreams"
+    },
+    {
+      "id": 27,
+      "name": "Butter Scotch",
+      "price": 30,
+      "description": "Butterscotch flavored ice cream",
+      "category": "icecreams"
+    },
+    {
+      "id": 28,
+      "name": "Mint Chocolate Chip",
+      "price": 45,
+      "description": "Mint ice cream with chocolate chips",
+      "category": "icecreams"
+    }
+  ]
+}
