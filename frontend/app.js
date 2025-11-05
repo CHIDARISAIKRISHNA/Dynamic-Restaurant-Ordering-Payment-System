@@ -1,5 +1,8 @@
 // API Configuration
-const API_BASE_URL = "http://localhost:3000/api"
+// Use local API when running on localhost, otherwise use remote URL
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? `http://${window.location.hostname}:3000/api`
+  : "https://dynamic-restaurant-ordering-payment.onrender.com/api"
 
 // Global variables
 let menuItems = {}
@@ -9,8 +12,82 @@ let allOrders = []
 let orderItems = []
 let currentTotal = 0
 
+// Admin access control
+let isAdmin = false
+
+// Check for admin access via URL parameter
+function checkAdminAccess() {
+  const urlParams = new URLSearchParams(window.location.search)
+  const adminKey = urlParams.get('admin')
+  
+  // Secret admin key (change this to your own secret)
+  const ADMIN_SECRET = 'admin123' // ⚠️ CHANGE THIS TO YOUR OWN SECRET PASSWORD!
+  
+  if (adminKey === ADMIN_SECRET) {
+    isAdmin = true
+    showAdminPanel()
+    // Store admin session in localStorage
+    sessionStorage.setItem('isAdmin', 'true')
+    showNotification('Admin access granted', 'success')
+  } else {
+    // Check if admin session exists
+    const adminSession = sessionStorage.getItem('isAdmin')
+    if (adminSession === 'true') {
+      isAdmin = true
+      showAdminPanel()
+    } else {
+      hideAdminPanel()
+    }
+  }
+}
+
+// Show admin panel
+function showAdminPanel() {
+  const adminPanel = document.getElementById('admin-panel')
+  if (adminPanel) {
+    adminPanel.style.display = 'block'
+    console.log('Admin panel shown')
+    
+    // Auto-expand admin panel and show orders tab
+    setTimeout(() => {
+      const adminContent = document.getElementById('admin-content')
+      const adminOrdersTab = document.getElementById('admin-orders')
+      
+      if (adminContent) {
+        adminContent.style.display = 'block'
+        console.log('Admin content expanded')
+      }
+      
+      if (adminOrdersTab) {
+        adminOrdersTab.style.display = 'block'
+        console.log('Orders tab shown')
+      }
+      
+      // Load orders immediately
+      loadRecentOrders()
+      
+      // Rotate toggle icon
+      const toggleIcon = document.querySelector(".admin-toggle i")
+      if (toggleIcon) {
+        toggleIcon.style.transform = "rotate(180deg)"
+      }
+    }, 100)
+  } else {
+    console.error('Admin panel element not found!')
+  }
+}
+
+// Hide admin panel
+function hideAdminPanel() {
+  const adminPanel = document.getElementById('admin-panel')
+  if (adminPanel) {
+    adminPanel.style.display = 'none'
+  }
+}
+
 // Initialize the application
 document.addEventListener("DOMContentLoaded", () => {
+  checkAdminAccess() // Check admin access first
   initializeApp()
   setupEventListeners()
   showWelcomeAnimations()
@@ -44,6 +121,101 @@ function setupEventListeners() {
         navMenu.classList.remove("active")
         navToggle.classList.remove("active")
       })
+    })
+  }
+
+  // Real-time validation for customer fields
+  const customerName = document.getElementById("customer-name")
+  const customerPhone = document.getElementById("customer-phone")
+
+  if (customerName) {
+    customerName.addEventListener("input", () => {
+      const name = customerName.value.trim()
+      const nameError = document.getElementById("name-error")
+      if (name.length > 0 && name.length < 2) {
+        if (nameError) {
+          nameError.textContent = "Name must be at least 2 characters"
+          nameError.style.display = "block"
+        }
+        customerName.classList.add("error")
+      } else if (name.length >= 2) {
+        if (nameError) nameError.style.display = "none"
+        customerName.classList.remove("error")
+      }
+      checkGenerateBillButton()
+    })
+
+    customerName.addEventListener("blur", () => {
+      validateCustomerInfo()
+      checkGenerateBillButton()
+    })
+  }
+
+  if (customerPhone) {
+    customerPhone.addEventListener("input", () => {
+      const phone = customerPhone.value.trim()
+      const phoneError = document.getElementById("phone-error")
+      const phoneRegex = /^[0-9]{10,15}$/
+      
+      if (phone.length > 0 && !phoneRegex.test(phone)) {
+        if (phoneError) {
+          phoneError.textContent = "Phone must be 10-15 digits"
+          phoneError.style.display = "block"
+        }
+        customerPhone.classList.add("error")
+      } else if (phoneRegex.test(phone)) {
+        if (phoneError) phoneError.style.display = "none"
+        customerPhone.classList.remove("error")
+      }
+      checkGenerateBillButton()
+    })
+
+    customerPhone.addEventListener("blur", () => {
+      validateCustomerInfo()
+      checkGenerateBillButton()
+    })
+  }
+
+  // Admin panel toggle - make entire header clickable
+  const adminHeader = document.querySelector(".admin-header")
+  const adminToggle = document.querySelector(".admin-toggle")
+  
+  console.log("Setting up admin panel listeners:", { 
+    adminToggle: !!adminToggle, 
+    adminHeader: !!adminHeader,
+    toggleFunction: typeof window.toggleAdminPanel 
+  })
+  
+  if (adminHeader) {
+    // Make entire header clickable
+    adminHeader.style.cursor = "pointer"
+    adminHeader.addEventListener("click", (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      console.log("Admin header/button clicked", e.target)
+      if (window.toggleAdminPanel) {
+        window.toggleAdminPanel()
+      } else {
+        console.error("toggleAdminPanel function not available!")
+        // Try direct call
+        toggleAdminPanel()
+      }
+    })
+  } else {
+    console.error("Admin header not found! Cannot set up admin panel.")
+  }
+  
+  // Also attach to button specifically as backup
+  if (adminToggle) {
+    adminToggle.addEventListener("click", (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      console.log("Admin toggle button clicked directly")
+      if (window.toggleAdminPanel) {
+        window.toggleAdminPanel()
+      } else {
+        toggleAdminPanel()
+      }
     })
   }
 
@@ -285,6 +457,29 @@ function updateItemQuantity(itemId, quantity) {
   }
 
   updateOrderSummary()
+  checkGenerateBillButton()
+}
+
+// Check if Generate Bill button should be enabled
+function checkGenerateBillButton() {
+  const calculateButton = document.getElementById("calculate-button")
+  const customerName = document.getElementById("customer-name")?.value.trim()
+  const customerPhone = document.getElementById("customer-phone")?.value.trim()
+  const phoneRegex = /^[0-9]{10,15}$/
+
+  if (calculateButton) {
+    const hasItems = orderItems.length > 0
+    const hasValidName = customerName && customerName.length >= 2
+    const hasValidPhone = customerPhone && phoneRegex.test(customerPhone)
+
+    if (hasItems && hasValidName && hasValidPhone) {
+      calculateButton.disabled = false
+      calculateButton.classList.remove("disabled")
+    } else {
+      calculateButton.disabled = true
+      calculateButton.classList.add("disabled")
+    }
+  }
 }
 
 // Update order summary in sidebar
@@ -351,17 +546,76 @@ function updateOrderSummary() {
   } else {
     orderSummary.style.display = "none"
   }
+
+  // Check if Generate Bill button should be enabled
+  checkGenerateBillButton()
+}
+
+// Validate customer information
+function validateCustomerInfo() {
+  const customerName = document.getElementById("customer-name")?.value.trim()
+  const customerPhone = document.getElementById("customer-phone")?.value.trim()
+  const nameError = document.getElementById("name-error")
+  const phoneError = document.getElementById("phone-error")
+  let isValid = true
+
+  // Clear previous errors
+  if (nameError) nameError.textContent = ""
+  if (phoneError) phoneError.textContent = ""
+
+  // Validate name
+  if (!customerName || customerName.length < 2) {
+    if (nameError) {
+      nameError.textContent = "Name must be at least 2 characters"
+      nameError.style.display = "block"
+    }
+    document.getElementById("customer-name")?.classList.add("error")
+    isValid = false
+  } else {
+    document.getElementById("customer-name")?.classList.remove("error")
+  }
+
+  // Validate phone number (10-15 digits)
+  const phoneRegex = /^[0-9]{10,15}$/
+  if (!customerPhone) {
+    if (phoneError) {
+      phoneError.textContent = "Phone number is required"
+      phoneError.style.display = "block"
+    }
+    document.getElementById("customer-phone")?.classList.add("error")
+    isValid = false
+  } else if (!phoneRegex.test(customerPhone)) {
+    if (phoneError) {
+      phoneError.textContent = "Phone must be 10-15 digits"
+      phoneError.style.display = "block"
+    }
+    document.getElementById("customer-phone")?.classList.add("error")
+    isValid = false
+  } else {
+    document.getElementById("customer-phone")?.classList.remove("error")
+  }
+
+  return isValid
 }
 
 // Calculate final cost and show receipt modal
 function calculateFinalCost() {
+  // Validate order items
   if (orderItems.length === 0) {
-    alert("Please select at least one item to generate a bill.")
+    showNotification("Please select at least one item to generate a bill.", "error")
     return
   }
 
-  const customerName = document.getElementById("customer-name")?.value || "Guest"
-  const customerPhone = document.getElementById("customer-phone")?.value || ""
+  // Validate customer information (mandatory)
+  if (!validateCustomerInfo()) {
+    showNotification("Please fill in all required customer information.", "error")
+    // Scroll to customer info section
+    document.querySelector(".customer-info-card")?.scrollIntoView({ behavior: "smooth", block: "center" })
+    return
+  }
+
+  const customerName = document.getElementById("customer-name").value.trim()
+  const customerPhone = document.getElementById("customer-phone").value.trim()
 
   // Store current order data
   currentOrder = {
@@ -451,7 +705,19 @@ function printReceipt() {
 // Place order to backend
 async function placeOrder() {
   if (!currentOrder) {
-    alert("Please generate a bill first.")
+    showNotification("Please generate a bill first.", "error")
+    return
+  }
+
+  // Validate customer info again before placing order
+  if (!validateCustomerInfo()) {
+    showNotification("Please ensure all customer information is valid.", "error")
+    return
+  }
+
+  // Ensure customer name and phone are not empty
+  if (!currentOrder.customerInfo.name || !currentOrder.customerInfo.phone) {
+    showNotification("Customer name and phone number are required to place order.", "error")
     return
   }
 
@@ -471,7 +737,10 @@ async function placeOrder() {
       },
       body: JSON.stringify({
         items: currentOrder.items,
-        customerInfo: currentOrder.customerInfo,
+        customerInfo: {
+          name: currentOrder.customerInfo.name,
+          phone: currentOrder.customerInfo.phone,
+        },
         totalAmount: currentOrder.total,
         tax: currentOrder.tax,
       }),
@@ -593,14 +862,54 @@ function showNotification(message, type = "info") {
 
 // Admin Panel Functions
 function toggleAdminPanel() {
+  // Check if user has admin access
+  if (!isAdmin && sessionStorage.getItem('isAdmin') !== 'true') {
+    // Prompt for admin password
+    const password = prompt('Enter admin password to access admin panel:')
+    const ADMIN_SECRET = 'admin123' // ⚠️ CHANGE THIS TO YOUR OWN SECRET PASSWORD!
+    if (password === ADMIN_SECRET) {
+      isAdmin = true
+      sessionStorage.setItem('isAdmin', 'true')
+      showAdminPanel()
+      showNotification('Admin access granted', 'success')
+    } else {
+      showNotification('Invalid admin password', 'error')
+      return
+    }
+  }
+
   const adminContent = document.getElementById("admin-content")
   const toggleIcon = document.querySelector(".admin-toggle i")
 
-  if (!adminContent || !toggleIcon) return
+  if (!adminContent || !toggleIcon) {
+    console.error("Admin panel elements not found")
+    return
+  }
 
-  if (adminContent.style.display === "none" || !adminContent.style.display) {
+  const isHidden = adminContent.style.display === "none" || !adminContent.style.display
+  
+  if (isHidden) {
     adminContent.style.display = "block"
     toggleIcon.style.transform = "rotate(180deg)"
+    
+    // Make sure Orders tab is visible
+    const adminOrdersTab = document.getElementById('admin-orders')
+    if (adminOrdersTab) {
+      adminOrdersTab.style.display = 'block'
+    }
+    
+    // Hide stats tab
+    const adminStatsTab = document.getElementById('admin-stats')
+    if (adminStatsTab) {
+      adminStatsTab.style.display = 'none'
+    }
+    
+    // Make Orders tab button active
+    const ordersTabBtn = document.querySelector('[onclick*="showAdminTab(\'orders\'"]')
+    const statsTabBtn = document.querySelector('[onclick*="showAdminTab(\'stats\'"]')
+    if (ordersTabBtn) ordersTabBtn.classList.add('active')
+    if (statsTabBtn) statsTabBtn.classList.remove('active')
+    
     loadRecentOrders()
     loadSalesStats()
   } else {
@@ -609,8 +918,23 @@ function toggleAdminPanel() {
   }
 }
 
+// Make function globally accessible immediately
+window.toggleAdminPanel = toggleAdminPanel
+
+// Also attach it when DOM is ready as a fallback
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    window.toggleAdminPanel = toggleAdminPanel
+    console.log("toggleAdminPanel attached to window on DOMContentLoaded")
+  })
+} else {
+  // DOM already loaded
+  window.toggleAdminPanel = toggleAdminPanel
+  console.log("toggleAdminPanel attached to window immediately")
+}
+
 // Show admin tab
-function showAdminTab(tabName) {
+function showAdminTab(tabName, clickedElement) {
   // Hide all tab contents
   const tabContents = document.querySelectorAll(".admin-tab-content")
   tabContents.forEach((content) => (content.style.display = "none"))
@@ -625,8 +949,15 @@ function showAdminTab(tabName) {
     targetTab.style.display = "block"
   }
 
-  if (event && event.target) {
-    event.target.classList.add("active")
+  // Mark clicked button as active
+  if (clickedElement) {
+    clickedElement.classList.add("active")
+  } else {
+    // Fallback: find button by tab name
+    const button = document.querySelector(`[onclick*="showAdminTab('${tabName}')"]`)
+    if (button) {
+      button.classList.add("active")
+    }
   }
 
   // Load tab-specific data
@@ -639,21 +970,46 @@ function showAdminTab(tabName) {
 
 // Load recent orders for admin panel
 async function loadRecentOrders() {
+  const ordersList = document.getElementById("orders-list")
+  
+  if (!ordersList) {
+    console.error('Orders list element not found!')
+    return
+  }
+  
+  // Show loading state
+  ordersList.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</p>'
+  
   try {
+    console.log('Loading orders from:', `${API_BASE_URL}/orders`)
     const response = await fetch(`${API_BASE_URL}/orders`)
 
     if (!response.ok) {
-      throw new Error("Failed to load orders")
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
 
     allOrders = await response.json()
-    displayOrders(allOrders)
+    console.log('Orders loaded:', allOrders.length, 'orders')
+    
+    if (allOrders.length === 0) {
+      ordersList.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No orders yet. Orders will appear here when customers place orders.</p>'
+    } else {
+      displayOrders(allOrders)
+    }
   } catch (error) {
     console.error("Error loading orders:", error)
-    const ordersList = document.getElementById("orders-list")
-    if (ordersList) {
-      ordersList.innerHTML = '<p style="color: red;">Failed to load orders</p>'
-    }
+    ordersList.innerHTML = `
+      <div style="padding: 20px; text-align: center; color: red;">
+        <p><strong>Failed to load orders</strong></p>
+        <p style="font-size: 0.9rem; margin-top: 10px;">${error.message}</p>
+        <p style="font-size: 0.85rem; margin-top: 10px; color: #666;">
+          Make sure the backend server is running on port 3000
+        </p>
+        <button onclick="loadRecentOrders()" class="btn btn-small" style="margin-top: 10px;">
+          <i class="fas fa-sync"></i> Retry
+        </button>
+      </div>
+    `
   }
 }
 
@@ -675,33 +1031,53 @@ function filterOrdersByStatus() {
 // Display orders in admin panel
 function displayOrders(orders) {
   const ordersList = document.getElementById("orders-list")
-  if (!ordersList) return
-
-  if (orders.length === 0) {
-    ordersList.innerHTML = "<p>No orders found.</p>"
+  if (!ordersList) {
+    console.error('Orders list element not found in displayOrders!')
     return
   }
+
+  if (orders.length === 0) {
+    ordersList.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No orders found.</p>'
+    return
+  }
+  
+  console.log('Displaying', orders.length, 'orders')
 
   ordersList.innerHTML = orders
     .map((order) => {
       const itemsList = order.items.map((item) => `${item.name} (${item.quantity}×)`).join(", ")
 
+      // Status badge with emoji
+      const statusBadges = {
+        pending: '🟡 Pending',
+        confirmed: '🟢 Confirmed',
+        preparing: '🔵 Preparing',
+        ready: '🟣 Ready',
+        delivered: '🟠 Delivered',
+        cancelled: '🔴 Cancelled'
+      }
+
       return `
         <div class="order-item status-${order.status}">
-          <h5>Order #${order.id} - ${order.customer_name}</h5>
+          <div class="order-header">
+            <h5>Order #${order.id} - ${order.customer_name}</h5>
+            <span class="status-badge status-${order.status}">${statusBadges[order.status] || order.status}</span>
+          </div>
           <p><strong>Items:</strong> ${itemsList}</p>
           <p><strong>Total:</strong> ₹${Number.parseFloat(order.total_amount).toFixed(2)} | 
              <strong>Phone:</strong> ${order.customer_phone || "N/A"}</p>
-          <p><strong>Status:</strong> ${order.status} | 
-             <strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
-          <select onchange="updateOrderStatus(${order.id}, this.value)" value="${order.status}">
-            <option value="pending" ${order.status === "pending" ? "selected" : ""}>Pending</option>
-            <option value="confirmed" ${order.status === "confirmed" ? "selected" : ""}>Confirmed</option>
-            <option value="preparing" ${order.status === "preparing" ? "selected" : ""}>Preparing</option>
-            <option value="ready" ${order.status === "ready" ? "selected" : ""}>Ready</option>
-            <option value="delivered" ${order.status === "delivered" ? "selected" : ""}>Delivered</option>
-            <option value="cancelled" ${order.status === "cancelled" ? "selected" : ""}>Cancelled</option>
-          </select>
+          <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+          <div class="status-control">
+            <label><strong>Update Status:</strong></label>
+            <select onchange="updateOrderStatus(${order.id}, this.value)" value="${order.status}" class="status-select">
+              <option value="pending" ${order.status === "pending" ? "selected" : ""}>🟡 Pending</option>
+              <option value="confirmed" ${order.status === "confirmed" ? "selected" : ""}>🟢 Confirmed</option>
+              <option value="preparing" ${order.status === "preparing" ? "selected" : ""}>🔵 Preparing</option>
+              <option value="ready" ${order.status === "ready" ? "selected" : ""}>🟣 Ready</option>
+              <option value="delivered" ${order.status === "delivered" ? "selected" : ""}>🟠 Delivered</option>
+              <option value="cancelled" ${order.status === "cancelled" ? "selected" : ""}>🔴 Cancelled</option>
+            </select>
+          </div>
         </div>
       `
     })
@@ -758,18 +1134,27 @@ function displaySalesStats(stats) {
   const statsContent = document.getElementById("stats-content")
   if (!statsContent) return
 
+  // Handle null/undefined stats
+  if (!stats || !stats.today || !stats.month) {
+    statsContent.innerHTML = '<p style="color: #666; text-align: center;">No statistics available yet.</p>'
+    return
+  }
+
+  const todayStats = stats.today || {}
+  const monthStats = stats.month || {}
+
   statsContent.innerHTML = `
     <div class="stats-grid">
       <div class="stat-card">
         <h4><i class="fas fa-calendar-day"></i> Today's Sales</h4>
-        <p><strong>Orders:</strong> ${stats.today.total_orders || 0}</p>
-        <p><strong>Revenue:</strong> ₹${Number.parseFloat(stats.today.total_revenue || 0).toFixed(2)}</p>
-        <p><strong>Avg Order:</strong> ₹${Number.parseFloat(stats.today.average_order_value || 0).toFixed(2)}</p>
+        <p><strong>Orders:</strong> ${todayStats.total_orders || 0}</p>
+        <p><strong>Revenue:</strong> ₹${Number.parseFloat(todayStats.total_revenue || 0).toFixed(2)}</p>
+        <p><strong>Avg Order:</strong> ₹${Number.parseFloat(todayStats.average_order_value || 0).toFixed(2)}</p>
       </div>
       <div class="stat-card">
         <h4><i class="fas fa-calendar-alt"></i> This Month</h4>
-        <p><strong>Orders:</strong> ${stats.month.total_orders || 0}</p>
-        <p><strong>Revenue:</strong> ₹${Number.parseFloat(stats.month.total_revenue || 0).toFixed(2)}</p>
+        <p><strong>Orders:</strong> ${monthStats.total_orders || 0}</p>
+        <p><strong>Revenue:</strong> ₹${Number.parseFloat(monthStats.total_revenue || 0).toFixed(2)}</p>
       </div>
     </div>
   `
@@ -800,8 +1185,14 @@ setInterval(() => {
 // Smooth scrolling for anchor links
 document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
   anchor.addEventListener("click", function (e) {
+    const href = this.getAttribute("href")
+    // Skip if href is just "#" or empty
+    if (!href || href === "#" || href.length <= 1) {
+      return
+    }
+    
     e.preventDefault()
-    const target = document.querySelector(this.getAttribute("href"))
+    const target = document.querySelector(href)
     if (target) {
       target.scrollIntoView({
         behavior: "smooth",

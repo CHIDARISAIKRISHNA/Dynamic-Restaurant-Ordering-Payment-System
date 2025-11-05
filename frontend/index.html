@@ -177,15 +177,18 @@
             <div class="menu-sidebar">
                 <!-- Customer Info Section -->
                 <div class="customer-info-card">
-                    <h3><i class="fas fa-user"></i> Customer Information</h3>
+                    <h3><i class="fas fa-user"></i> Customer Information <span class="required-text">*Required</span></h3>
                     <div class="input-group">
-                        <input type="text" id="customer-name" placeholder="Your Name" maxlength="100">
+                        <input type="text" id="customer-name" placeholder="Your Name *" maxlength="100" required>
                         <i class="fas fa-user input-icon"></i>
+                        <span class="error-message" id="name-error"></span>
                     </div>
                     <div class="input-group">
-                        <input type="tel" id="customer-phone" placeholder="Phone Number" maxlength="15">
+                        <input type="tel" id="customer-phone" placeholder="Phone Number *" maxlength="15" required pattern="[0-9]{10,15}">
                         <i class="fas fa-phone input-icon"></i>
+                        <span class="error-message" id="phone-error"></span>
                     </div>
+                    <p class="field-note"><small>* Fields are mandatory to proceed</small></p>
                 </div>
 
                 <!-- Order Summary -->
@@ -246,7 +249,7 @@
                 <div id="menu-content" class="menu-content"></div>
                 
                 <div class="menu-actions">
-                    <button class="btn btn-primary btn-large" id="calculate-button" onclick="calculateFinalCost()" style="display: none;">
+                    <button class="btn btn-primary btn-large" id="calculate-button" onclick="calculateFinalCost()" style="display: none;" disabled>
                         <i class="fas fa-calculator"></i>
                         Generate Bill
                     </button>
@@ -385,16 +388,16 @@
     <div class="admin-panel" id="admin-panel">
         <div class="admin-header">
             <h3><i class="fas fa-cog"></i> Admin Panel</h3>
-            <button class="admin-toggle" onclick="toggleAdminPanel()">
+            <button class="admin-toggle" type="button">
                 <i class="fas fa-chevron-down"></i>
             </button>
         </div>
         <div id="admin-content" style="display: none;">
             <div class="admin-tabs">
-                <button onclick="showAdminTab('orders')" class="admin-tab-btn active">
+                <button onclick="showAdminTab('orders', this)" class="admin-tab-btn active">
                     <i class="fas fa-shopping-cart"></i> Orders
                 </button>
-                <button onclick="showAdminTab('stats')" class="admin-tab-btn">
+                <button onclick="showAdminTab('stats', this)" class="admin-tab-btn">
                     <i class="fas fa-chart-bar"></i> Statistics
                 </button>
             </div>

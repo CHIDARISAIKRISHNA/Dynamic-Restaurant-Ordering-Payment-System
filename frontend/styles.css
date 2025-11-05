@@ -499,6 +499,21 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.required-text {
+  color: var(--danger-color);
+  font-size: 0.85rem;
+  font-weight: normal;
+  margin-left: auto;
+}
+
+.field-note {
+  margin-top: 10px;
+  color: var(--gray-dark);
+  font-style: italic;
+  font-size: 0.9rem;
 }
 
 .input-group {
@@ -513,11 +528,35 @@ body {
   border-radius: var(--border-radius);
   font-size: 1rem;
   transition: var(--transition);
+  box-sizing: border-box;
+}
+
+.input-group input.error {
+  border-color: var(--danger-color);
+  background-color: #fff5f5;
 }
 
 .input-group input:focus {
   outline: none;
   border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.input-group input.error:focus {
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
+.input-group .error-message {
+  display: none;
+  color: var(--danger-color);
+  font-size: 0.85rem;
+  margin-top: 5px;
+  padding-left: 5px;
+}
+
+.input-group .error-message:not(:empty) {
+  display: block;
 }
 
 .input-icon {
@@ -741,6 +780,21 @@ body {
   transition: var(--transition);
   text-align: center;
   justify-content: center;
+}
+
+.btn.disabled,
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+  background-color: var(--gray-light);
+  color: var(--gray-dark);
+}
+
+.btn.disabled:hover,
+.btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .btn-primary {
@@ -1117,6 +1171,7 @@ body {
   max-width: 400px;
   max-height: 70vh;
   overflow: hidden;
+  display: none; /* Hidden by default - only shown when admin access granted */
 }
 
 .admin-header {
@@ -1126,6 +1181,9 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  z-index: 1001;
+  cursor: pointer;
 }
 
 .admin-header h3 {
@@ -1143,6 +1201,9 @@ body {
   padding: 5px;
   border-radius: 4px;
   transition: var(--transition);
+  position: relative;
+  z-index: 1001;
+  pointer-events: auto;
 }
 
 .admin-toggle:hover {
@@ -1205,12 +1266,67 @@ body {
   margin: 10px 0;
   border-radius: var(--border-radius);
   border-left: 4px solid var(--primary-color);
+  transition: var(--transition);
+}
+
+.order-item:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .order-item h5 {
-  margin: 0 0 8px 0;
+  margin: 0;
   color: var(--dark-color);
   font-size: 1rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.status-badge.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.status-confirmed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.status-preparing {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-badge.status-ready {
+  background-color: #e2d9f3;
+  color: #6f42c1;
+}
+
+.status-badge.status-delivered {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.status-badge.status-cancelled {
+  background-color: #f8d7da;
+  color: #721c24;
 }
 
 .order-item p {
@@ -1219,12 +1335,39 @@ body {
   color: var(--gray-dark);
 }
 
-.order-item select {
-  margin-top: 10px;
-  padding: 5px;
-  border: 1px solid var(--gray-light);
+.status-control {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gray-light);
+}
+
+.status-control label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  color: var(--dark-color);
+  font-weight: 600;
+}
+
+.status-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid var(--gray-light);
   border-radius: 4px;
   font-size: 0.9rem;
+  background: var(--white);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.status-select:hover {
+  border-color: var(--primary-color);
+}
+
+.status-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 .status-pending {

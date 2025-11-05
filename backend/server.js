@@ -13,7 +13,40 @@ const app = express()
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors())
+// CORS configuration - Update with your Netlify URL after deployment
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5500',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5500',
+  process.env.FRONTEND_URL, // Set this in Render environment variables
+  'https://*.netlify.app' // Allows all Netlify deployments
+]
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true)
+    
+    // Check if origin is in allowed list or matches Netlify pattern
+    if (allowedOrigins.some(allowed => {
+      if (allowed && allowed.includes('*')) {
+        return origin.includes(allowed.replace('*.', ''))
+      }
+      return origin === allowed
+    })) {
+      callback(null, true)
+    } else {
+      // In development, allow all origins
+      if (process.env.NODE_ENV !== 'production') {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
+    }
+  },
+  credentials: true
+}))
 app.use(express.json())
 app.use(express.static(path.join(__dirname, "../frontend")))
 
@@ -79,9 +112,24 @@ process.on("SIGTERM", async () => {
 async function startServer() {
   await initializeDatabase()
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`)
     console.log(`API endpoints available at http://localhost:${PORT}/api`)
+  })
+
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`\n❌ Error: Port ${PORT} is already in use!`)
+      console.error(`\nTo fix this, you can:`)
+      console.error(`  1. Stop the process using port ${PORT}`)
+      console.error(`  2. Use a different port: PORT=3001 npm start`)
+      console.error(`  3. On Windows, find and kill the process:`)
+      console.error(`     Get-NetTCPConnection -LocalPort ${PORT} | Select-Object OwningProcess`)
+      console.error(`     Stop-Process -Id <PID> -Force\n`)
+      process.exit(1)
+    } else {
+      throw error
+    }
   })
 }
 
