@@ -91,22 +91,29 @@ app.get("/api/health", (req, res) => {
 })
 
 // Serve frontend (if exists - for local dev only)
+// This route must be defined before the 404 handler
 app.get("/", (req, res) => {
-  const indexPath = path.join(__dirname, "../frontend", "index.html")
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath)
-  } else {
-    res.json({
-      message: "Restaurant API is running",
-      note: "Frontend is deployed separately on Netlify",
-      api: {
-        health: "/api/health",
-        menu: "/api/menu",
-        orders: "/api/orders",
-        storageInfo: "/api/storage-info"
-      }
-    })
+  try {
+    const indexPath = path.join(__dirname, "../frontend", "index.html")
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath)
+    }
+  } catch (error) {
+    console.log("Frontend file not found, serving API info")
   }
+  
+  // Return API info if frontend not found
+  res.json({
+    message: "Restaurant API is running",
+    status: "online",
+    note: "Frontend is deployed separately on Netlify",
+    api: {
+      health: "/api/health",
+      menu: "/api/menu",
+      orders: "/api/orders",
+      storageInfo: "/api/storage-info"
+    }
+  })
 })
 
 // Serve admin page (if exists - for local dev only)
@@ -127,7 +134,7 @@ app.get("/admin.html", (req, res) => {
   res.redirect("/admin")
 })
 
-// Error handling middleware
+// Error handling middleware (must be before 404 handler)
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err)
   res.status(500).json({
@@ -136,14 +143,19 @@ app.use((err, req, res, next) => {
   })
 })
 
-// Redirect admin.html to /admin (before 404 handler)
-app.get("/admin.html", (req, res) => {
-  res.redirect("/admin")
-})
-
-// Handle 404
+// Handle 404 - must be last
 app.use("*", (req, res) => {
-  res.status(404).json({ error: "Route not found" })
+  res.status(404).json({ 
+    error: "Route not found",
+    message: "The requested route does not exist",
+    availableRoutes: {
+      root: "/",
+      health: "/api/health",
+      menu: "/api/menu",
+      orders: "/api/orders",
+      storageInfo: "/api/storage-info"
+    }
+  })
 })
 
 // Graceful shutdown
