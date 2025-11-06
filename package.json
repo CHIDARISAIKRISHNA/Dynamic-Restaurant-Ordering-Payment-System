@@ -11,10 +11,6 @@
     "lint": "next lint",
     "install-backend": "cd backend && npm install",
     "install-all": "npm run install-backend",
-    "setup-db": "cd backend && node scripts/setup-database.js",
-    "reset-db": "cd backend && npm run reset-db",
-    "migrate": "cd backend && npm run migrate",
-    "seed": "cd backend && npm run seed"
   },
   "keywords": ["restaurant", "fullstack", "nodejs", "express", "javascript", "sql", "sqlite", "api", "ordering-system"],
   "author": "Chidari Sai Krishna",

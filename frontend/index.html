@@ -383,47 +383,6 @@
         </div>
     </section>
 
-    <!-- Reviews Section -->
-    <!-- Admin Panel -->
-    <div class="admin-panel" id="admin-panel">
-        <div class="admin-header">
-            <h3><i class="fas fa-cog"></i> Admin Panel</h3>
-            <button class="admin-toggle" type="button">
-                <i class="fas fa-chevron-down"></i>
-            </button>
-        </div>
-        <div id="admin-content" style="display: none;">
-            <div class="admin-tabs">
-                <button onclick="showAdminTab('orders', this)" class="admin-tab-btn active">
-                    <i class="fas fa-shopping-cart"></i> Orders
-                </button>
-                <button onclick="showAdminTab('stats', this)" class="admin-tab-btn">
-                    <i class="fas fa-chart-bar"></i> Statistics
-                </button>
-            </div>
-            
-            <div id="admin-orders" class="admin-tab-content">
-                <div class="admin-controls">
-                    <select id="status-filter" onchange="filterOrdersByStatus()">
-                        <option value="">All Orders</option>
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="preparing">Preparing</option>
-                        <option value="ready">Ready</option>
-                        <option value="delivered">Delivered</option>
-                    </select>
-                    <button onclick="loadRecentOrders()" class="btn btn-small">
-                        <i class="fas fa-sync"></i> Refresh
-                    </button>
-                </div>
-                <div id="orders-list"></div>
-            </div>
-            
-            <div id="admin-stats" class="admin-tab-content" style="display: none;">
-                <div id="stats-content"></div>
-            </div>
-        </div>
-    </div>
 
     <!-- Newsletter Signup -->
     <!-- Footer -->

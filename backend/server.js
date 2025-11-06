@@ -1,9 +1,7 @@
 const express = require("express")
 const cors = require("cors")
 const path = require("path")
-const database = require("./config/database")
-const { createTables } = require("./migrations/001_create_tables")
-const { seedData } = require("./migrations/002_seed_data")
+const fs = require("fs")
 
 // Import routes
 const menuRoutes = require("./routes/menuRoutes")
@@ -19,8 +17,8 @@ const allowedOrigins = [
   'http://localhost:5500',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5500',
-  process.env.FRONTEND_URL, // Set this in Render environment variables
-  'https://*.netlify.app' // Allows all Netlify deployments
+  process.env.FRONTEND_URL,
+  /^https:\/\/.*\.netlify\.app$/ // All Netlify deployments
 ]
 
 app.use(cors({
@@ -28,19 +26,25 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true)
     
-    // Check if origin is in allowed list or matches Netlify pattern
-    if (allowedOrigins.some(allowed => {
-      if (allowed && allowed.includes('*')) {
+    // Check if origin is in allowed list or matches pattern
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin)
+      }
+      if (typeof allowed === 'string' && allowed.includes('*')) {
         return origin.includes(allowed.replace('*.', ''))
       }
       return origin === allowed
-    })) {
+    })
+    
+    if (isAllowed) {
       callback(null, true)
     } else {
       // In development, allow all origins
       if (process.env.NODE_ENV !== 'production') {
         callback(null, true)
       } else {
+        console.log('CORS blocked origin:', origin)
         callback(new Error('Not allowed by CORS'))
       }
     }
@@ -48,24 +52,34 @@ app.use(cors({
   credentials: true
 }))
 app.use(express.json())
-app.use(express.static(path.join(__dirname, "../frontend")))
 
-// Initialize database
-async function initializeDatabase() {
-  try {
-    await database.connect()
-    await createTables()
-    await seedData()
-    console.log("Database initialized successfully!")
-  } catch (error) {
-    console.error("Failed to initialize database:", error)
-    process.exit(1)
-  }
+// Serve frontend files if they exist (for local development)
+// In production, frontend will be on Netlify
+const frontendPath = path.join(__dirname, "../frontend")
+if (fs.existsSync(frontendPath)) {
+  app.use(express.static(frontendPath))
+}
+
+// File storage initialization (no MySQL needed)
+function initializeFileStorage() {
+  console.log("📁 Using file storage (JSON files) - no MySQL needed")
+  console.log("   Orders will be saved to: backend/data/orders.json")
+  console.log("   Admin can update order status - all saved to files!")
 }
 
 // API Routes
 app.use("/api/menu", menuRoutes)
 app.use("/api/orders", orderRoutes)
+
+// Storage info endpoint
+app.get("/api/storage-info", (req, res) => {
+  res.json({
+    success: true,
+    message: "📁 Using file storage (JSON files)",
+    storage: "file",
+    files: ["backend/data/orders.json", "backend/data/order_items.json"]
+  })
+})
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -76,9 +90,41 @@ app.get("/api/health", (req, res) => {
   })
 })
 
-// Serve frontend
+// Serve frontend (if exists - for local dev only)
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend", "index.html"))
+  const indexPath = path.join(__dirname, "../frontend", "index.html")
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath)
+  } else {
+    res.json({
+      message: "Restaurant API is running",
+      note: "Frontend is deployed separately on Netlify",
+      api: {
+        health: "/api/health",
+        menu: "/api/menu",
+        orders: "/api/orders",
+        storageInfo: "/api/storage-info"
+      }
+    })
+  }
+})
+
+// Serve admin page (if exists - for local dev only)
+app.get("/admin", (req, res) => {
+  const adminPath = path.join(__dirname, "../frontend", "admin.html")
+  if (fs.existsSync(adminPath)) {
+    res.sendFile(adminPath)
+  } else {
+    res.json({
+      message: "Admin panel not available on backend",
+      note: "Admin panel is deployed on Netlify at /admin route"
+    })
+  }
+})
+
+// Redirect admin.html to /admin
+app.get("/admin.html", (req, res) => {
+  res.redirect("/admin")
 })
 
 // Error handling middleware
@@ -90,31 +136,38 @@ app.use((err, req, res, next) => {
   })
 })
 
+// Redirect admin.html to /admin (before 404 handler)
+app.get("/admin.html", (req, res) => {
+  res.redirect("/admin")
+})
+
 // Handle 404
 app.use("*", (req, res) => {
   res.status(404).json({ error: "Route not found" })
 })
 
 // Graceful shutdown
-process.on("SIGINT", async () => {
+process.on("SIGINT", () => {
   console.log("\nShutting down server...")
-  await database.close()
   process.exit(0)
 })
 
-process.on("SIGTERM", async () => {
+process.on("SIGTERM", () => {
   console.log("\nShutting down server...")
-  await database.close()
   process.exit(0)
 })
 
 // Start server
-async function startServer() {
-  await initializeDatabase()
+function startServer() {
+  // Initialize file storage
+  initializeFileStorage()
 
   const server = app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`)
-    console.log(`API endpoints available at http://localhost:${PORT}/api`)
+    console.log(`\n✅ Server running on port ${PORT}`)
+    console.log(`✅ API endpoints available at http://localhost:${PORT}/api`)
+    console.log(`✅ Frontend: http://localhost:${PORT}`)
+    console.log(`✅ Admin: http://localhost:${PORT}/admin`)
+    console.log(`\n💡 Using file storage - orders saved to JSON files (no MySQL needed!)\n`)
   })
 
   server.on('error', (error) => {
@@ -133,7 +186,4 @@ async function startServer() {
   })
 }
 
-startServer().catch((error) => {
-  console.error("Failed to start server:", error)
-  process.exit(1)
-})
+startServer()

@@ -677,11 +677,16 @@ body {
 
 .category-btn i {
   font-size: 2rem;
+  display: block !important;
+  margin-bottom: 5px;
+  color: inherit; /* Inherit color from button */
+  visibility: visible !important;
 }
 
 .category-btn span {
   font-weight: 600;
   font-size: 1rem;
+  display: block;
 }
 
 /* Menu Items */
@@ -1162,16 +1167,18 @@ body {
 /* Admin Panel */
 .admin-panel {
   position: fixed;
-  top: 100px;
+  bottom: 20px;
   right: 20px;
   background: var(--white);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-lg);
   z-index: 1000;
-  max-width: 400px;
-  max-height: 70vh;
+  max-width: 450px;
+  min-width: 350px;
+  max-height: 80vh;
   overflow: hidden;
-  display: none; /* Hidden by default - only shown when admin access granted */
+  display: block;
+  visibility: visible;
 }
 
 .admin-header {

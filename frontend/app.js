@@ -8,86 +8,18 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
 let menuItems = {}
 let currentOrder = null
 let currentSection = "welcome"
-let allOrders = []
 let orderItems = []
 let currentTotal = 0
+let itemQuantities = {} // Store quantities across category switches
 
-// Admin access control
-let isAdmin = false
+// Admin panel removed from main page - use admin.html instead
+// No admin access control needed on main page
 
-// Check for admin access via URL parameter
-function checkAdminAccess() {
-  const urlParams = new URLSearchParams(window.location.search)
-  const adminKey = urlParams.get('admin')
-  
-  // Secret admin key (change this to your own secret)
-  const ADMIN_SECRET = 'admin123' // ⚠️ CHANGE THIS TO YOUR OWN SECRET PASSWORD!
-  
-  if (adminKey === ADMIN_SECRET) {
-    isAdmin = true
-    showAdminPanel()
-    // Store admin session in localStorage
-    sessionStorage.setItem('isAdmin', 'true')
-    showNotification('Admin access granted', 'success')
-  } else {
-    // Check if admin session exists
-    const adminSession = sessionStorage.getItem('isAdmin')
-    if (adminSession === 'true') {
-      isAdmin = true
-      showAdminPanel()
-    } else {
-      hideAdminPanel()
-    }
-  }
-}
-
-// Show admin panel
-function showAdminPanel() {
-  const adminPanel = document.getElementById('admin-panel')
-  if (adminPanel) {
-    adminPanel.style.display = 'block'
-    console.log('Admin panel shown')
-    
-    // Auto-expand admin panel and show orders tab
-    setTimeout(() => {
-      const adminContent = document.getElementById('admin-content')
-      const adminOrdersTab = document.getElementById('admin-orders')
-      
-      if (adminContent) {
-        adminContent.style.display = 'block'
-        console.log('Admin content expanded')
-      }
-      
-      if (adminOrdersTab) {
-        adminOrdersTab.style.display = 'block'
-        console.log('Orders tab shown')
-      }
-      
-      // Load orders immediately
-      loadRecentOrders()
-      
-      // Rotate toggle icon
-      const toggleIcon = document.querySelector(".admin-toggle i")
-      if (toggleIcon) {
-        toggleIcon.style.transform = "rotate(180deg)"
-      }
-    }, 100)
-  } else {
-    console.error('Admin panel element not found!')
-  }
-}
-
-// Hide admin panel
-function hideAdminPanel() {
-  const adminPanel = document.getElementById('admin-panel')
-  if (adminPanel) {
-    adminPanel.style.display = 'none'
-  }
-}
+// Admin panel functions removed - admin panel is now on separate page (admin.html)
 
 // Initialize the application
 document.addEventListener("DOMContentLoaded", () => {
-  checkAdminAccess() // Check admin access first
+  // Initialize app (no admin panel on main page)
   initializeApp()
   setupEventListeners()
   showWelcomeAnimations()
@@ -98,8 +30,9 @@ function initializeApp() {
   // Show welcome section by default
   showSection("welcome")
   loadMenuData()
-  loadRecentOrders()
-  loadSalesStats()
+  
+  // No admin data loading on main page - admin panel is on separate page
+  
   animateStats()
 }
 
@@ -176,48 +109,6 @@ function setupEventListeners() {
     })
   }
 
-  // Admin panel toggle - make entire header clickable
-  const adminHeader = document.querySelector(".admin-header")
-  const adminToggle = document.querySelector(".admin-toggle")
-  
-  console.log("Setting up admin panel listeners:", { 
-    adminToggle: !!adminToggle, 
-    adminHeader: !!adminHeader,
-    toggleFunction: typeof window.toggleAdminPanel 
-  })
-  
-  if (adminHeader) {
-    // Make entire header clickable
-    adminHeader.style.cursor = "pointer"
-    adminHeader.addEventListener("click", (e) => {
-      e.preventDefault()
-      e.stopPropagation()
-      console.log("Admin header/button clicked", e.target)
-      if (window.toggleAdminPanel) {
-        window.toggleAdminPanel()
-      } else {
-        console.error("toggleAdminPanel function not available!")
-        // Try direct call
-        toggleAdminPanel()
-      }
-    })
-  } else {
-    console.error("Admin header not found! Cannot set up admin panel.")
-  }
-  
-  // Also attach to button specifically as backup
-  if (adminToggle) {
-    adminToggle.addEventListener("click", (e) => {
-      e.preventDefault()
-      e.stopPropagation()
-      console.log("Admin toggle button clicked directly")
-      if (window.toggleAdminPanel) {
-        window.toggleAdminPanel()
-      } else {
-        toggleAdminPanel()
-      }
-    })
-  }
 
   // Close modal when clicking outside
   window.addEventListener("click", (event) => {
@@ -402,6 +293,9 @@ function showMenu(category) {
   }
 
   items.forEach((item) => {
+    // Get saved quantity or default to 0
+    const savedQuantity = itemQuantities[item.id] || 0
+    
     const itemElement = document.createElement("div")
     itemElement.className = "menu-item"
     itemElement.innerHTML = `
@@ -416,9 +310,8 @@ function showMenu(category) {
           <input type="number" 
                  id="quantity-${item.id}" 
                  class="quantity-input"
-                 value="0" 
-                 min="0" 
-                 max="10"
+                 value="${savedQuantity}" 
+                 min="0"
                  onchange="updateItemQuantity(${item.id}, this.value)">
           <button class="quantity-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
         </div>
@@ -440,7 +333,7 @@ function updateQuantity(itemId, change) {
   const quantityInput = document.getElementById(`quantity-${itemId}`)
   if (quantityInput) {
     const currentValue = Number.parseInt(quantityInput.value) || 0
-    const newValue = Math.max(0, Math.min(10, currentValue + change))
+    const newValue = Math.max(0, currentValue + change) // No max limit
     quantityInput.value = newValue
     updateItemQuantity(itemId, newValue)
   }
@@ -448,7 +341,10 @@ function updateQuantity(itemId, change) {
 
 // Update item quantity
 function updateItemQuantity(itemId, quantity) {
-  quantity = Math.max(0, Math.min(10, Number.parseInt(quantity) || 0))
+  quantity = Math.max(0, Number.parseInt(quantity) || 0) // No max limit
+
+  // Store quantity in persistent storage
+  itemQuantities[itemId] = quantity
 
   // Update the input field
   const quantityInput = document.getElementById(`quantity-${itemId}`)
@@ -499,21 +395,30 @@ function updateOrderSummary() {
   const allItems = Object.values(menuItems).flat()
 
   allItems.forEach((item) => {
+    // First check if input exists (current category), otherwise use stored quantity
     const quantityInput = document.getElementById(`quantity-${item.id}`)
+    let quantity = 0
+    
     if (quantityInput) {
-      const quantity = Number.parseInt(quantityInput.value) || 0
-      if (quantity > 0) {
-        const total = Number.parseFloat(item.price) * quantity
-        subtotal += total
+      quantity = Number.parseInt(quantityInput.value) || 0
+      // Update stored quantity
+      itemQuantities[item.id] = quantity
+    } else {
+      // Use stored quantity if input doesn't exist (different category)
+      quantity = itemQuantities[item.id] || 0
+    }
+    
+    if (quantity > 0) {
+      const total = Number.parseFloat(item.price) * quantity
+      subtotal += total
 
-        orderItems.push({
-          id: item.id,
-          name: item.name,
-          price: Number.parseFloat(item.price),
-          quantity: quantity,
-          total: total,
-        })
-      }
+      orderItems.push({
+        id: item.id,
+        name: item.name,
+        price: Number.parseFloat(item.price),
+        quantity: quantity,
+        total: total,
+      })
     }
   })
 
@@ -764,10 +669,6 @@ async function placeOrder() {
         closeReceiptModal()
       }, 3000)
 
-      // Refresh admin panel
-      loadRecentOrders()
-      loadSalesStats()
-
       // Show success notification
       showNotification("Order placed successfully!", "success")
     } else {
@@ -796,7 +697,11 @@ async function placeOrder() {
 function clearOrder() {
   // Clear all quantity inputs
   const quantityInputs = document.querySelectorAll(".quantity-input")
-  quantityInputs.forEach((input) => (input.value = "0"))
+  quantityInputs.forEach((input) => {
+    const itemId = input.id.replace('quantity-', '')
+    input.value = "0"
+    itemQuantities[itemId] = 0 // Clear stored quantity
+  })
 
   // Clear customer info
   const customerName = document.getElementById("customer-name")
@@ -808,6 +713,7 @@ function clearOrder() {
   orderItems = []
   currentOrder = null
   currentTotal = 0
+  itemQuantities = {} // Clear all stored quantities
 
   // Update order summary
   updateOrderSummary()
@@ -860,327 +766,17 @@ function showNotification(message, type = "info") {
   }, 3000)
 }
 
-// Admin Panel Functions
-function toggleAdminPanel() {
-  // Check if user has admin access
-  if (!isAdmin && sessionStorage.getItem('isAdmin') !== 'true') {
-    // Prompt for admin password
-    const password = prompt('Enter admin password to access admin panel:')
-    const ADMIN_SECRET = 'admin123' // ⚠️ CHANGE THIS TO YOUR OWN SECRET PASSWORD!
-    if (password === ADMIN_SECRET) {
-      isAdmin = true
-      sessionStorage.setItem('isAdmin', 'true')
-      showAdminPanel()
-      showNotification('Admin access granted', 'success')
-    } else {
-      showNotification('Invalid admin password', 'error')
-      return
-    }
-  }
-
-  const adminContent = document.getElementById("admin-content")
-  const toggleIcon = document.querySelector(".admin-toggle i")
-
-  if (!adminContent || !toggleIcon) {
-    console.error("Admin panel elements not found")
-    return
-  }
-
-  const isHidden = adminContent.style.display === "none" || !adminContent.style.display
-  
-  if (isHidden) {
-    adminContent.style.display = "block"
-    toggleIcon.style.transform = "rotate(180deg)"
-    
-    // Make sure Orders tab is visible
-    const adminOrdersTab = document.getElementById('admin-orders')
-    if (adminOrdersTab) {
-      adminOrdersTab.style.display = 'block'
-    }
-    
-    // Hide stats tab
-    const adminStatsTab = document.getElementById('admin-stats')
-    if (adminStatsTab) {
-      adminStatsTab.style.display = 'none'
-    }
-    
-    // Make Orders tab button active
-    const ordersTabBtn = document.querySelector('[onclick*="showAdminTab(\'orders\'"]')
-    const statsTabBtn = document.querySelector('[onclick*="showAdminTab(\'stats\'"]')
-    if (ordersTabBtn) ordersTabBtn.classList.add('active')
-    if (statsTabBtn) statsTabBtn.classList.remove('active')
-    
-    loadRecentOrders()
-    loadSalesStats()
-  } else {
-    adminContent.style.display = "none"
-    toggleIcon.style.transform = "rotate(0deg)"
-  }
-}
-
-// Make function globally accessible immediately
-window.toggleAdminPanel = toggleAdminPanel
-
-// Also attach it when DOM is ready as a fallback
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    window.toggleAdminPanel = toggleAdminPanel
-    console.log("toggleAdminPanel attached to window on DOMContentLoaded")
-  })
-} else {
-  // DOM already loaded
-  window.toggleAdminPanel = toggleAdminPanel
-  console.log("toggleAdminPanel attached to window immediately")
-}
-
-// Show admin tab
-function showAdminTab(tabName, clickedElement) {
-  // Hide all tab contents
-  const tabContents = document.querySelectorAll(".admin-tab-content")
-  tabContents.forEach((content) => (content.style.display = "none"))
-
-  // Remove active class from all buttons
-  const tabButtons = document.querySelectorAll(".admin-tab-btn")
-  tabButtons.forEach((btn) => btn.classList.remove("active"))
-
-  // Show selected tab and mark button as active
-  const targetTab = document.getElementById(`admin-${tabName}`)
-  if (targetTab) {
-    targetTab.style.display = "block"
-  }
-
-  // Mark clicked button as active
-  if (clickedElement) {
-    clickedElement.classList.add("active")
-  } else {
-    // Fallback: find button by tab name
-    const button = document.querySelector(`[onclick*="showAdminTab('${tabName}')"]`)
-    if (button) {
-      button.classList.add("active")
-    }
-  }
-
-  // Load tab-specific data
-  if (tabName === "orders") {
-    loadRecentOrders()
-  } else if (tabName === "stats") {
-    loadSalesStats()
-  }
-}
-
-// Load recent orders for admin panel
-async function loadRecentOrders() {
-  const ordersList = document.getElementById("orders-list")
-  
-  if (!ordersList) {
-    console.error('Orders list element not found!')
-    return
-  }
-  
-  // Show loading state
-  ordersList.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</p>'
-  
-  try {
-    console.log('Loading orders from:', `${API_BASE_URL}/orders`)
-    const response = await fetch(`${API_BASE_URL}/orders`)
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    allOrders = await response.json()
-    console.log('Orders loaded:', allOrders.length, 'orders')
-    
-    if (allOrders.length === 0) {
-      ordersList.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No orders yet. Orders will appear here when customers place orders.</p>'
-    } else {
-      displayOrders(allOrders)
-    }
-  } catch (error) {
-    console.error("Error loading orders:", error)
-    ordersList.innerHTML = `
-      <div style="padding: 20px; text-align: center; color: red;">
-        <p><strong>Failed to load orders</strong></p>
-        <p style="font-size: 0.9rem; margin-top: 10px;">${error.message}</p>
-        <p style="font-size: 0.85rem; margin-top: 10px; color: #666;">
-          Make sure the backend server is running on port 3000
-        </p>
-        <button onclick="loadRecentOrders()" class="btn btn-small" style="margin-top: 10px;">
-          <i class="fas fa-sync"></i> Retry
-        </button>
-      </div>
-    `
-  }
-}
-
-// Filter orders by status
-function filterOrdersByStatus() {
-  const statusFilter = document.getElementById("status-filter")
-  if (!statusFilter) return
-
-  const filterValue = statusFilter.value
-
-  if (filterValue === "") {
-    displayOrders(allOrders)
-  } else {
-    const filteredOrders = allOrders.filter((order) => order.status === filterValue)
-    displayOrders(filteredOrders)
-  }
-}
-
-// Display orders in admin panel
-function displayOrders(orders) {
-  const ordersList = document.getElementById("orders-list")
-  if (!ordersList) {
-    console.error('Orders list element not found in displayOrders!')
-    return
-  }
-
-  if (orders.length === 0) {
-    ordersList.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No orders found.</p>'
-    return
-  }
-  
-  console.log('Displaying', orders.length, 'orders')
-
-  ordersList.innerHTML = orders
-    .map((order) => {
-      const itemsList = order.items.map((item) => `${item.name} (${item.quantity}×)`).join(", ")
-
-      // Status badge with emoji
-      const statusBadges = {
-        pending: '🟡 Pending',
-        confirmed: '🟢 Confirmed',
-        preparing: '🔵 Preparing',
-        ready: '🟣 Ready',
-        delivered: '🟠 Delivered',
-        cancelled: '🔴 Cancelled'
-      }
-
-      return `
-        <div class="order-item status-${order.status}">
-          <div class="order-header">
-            <h5>Order #${order.id} - ${order.customer_name}</h5>
-            <span class="status-badge status-${order.status}">${statusBadges[order.status] || order.status}</span>
-          </div>
-          <p><strong>Items:</strong> ${itemsList}</p>
-          <p><strong>Total:</strong> ₹${Number.parseFloat(order.total_amount).toFixed(2)} | 
-             <strong>Phone:</strong> ${order.customer_phone || "N/A"}</p>
-          <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
-          <div class="status-control">
-            <label><strong>Update Status:</strong></label>
-            <select onchange="updateOrderStatus(${order.id}, this.value)" value="${order.status}" class="status-select">
-              <option value="pending" ${order.status === "pending" ? "selected" : ""}>🟡 Pending</option>
-              <option value="confirmed" ${order.status === "confirmed" ? "selected" : ""}>🟢 Confirmed</option>
-              <option value="preparing" ${order.status === "preparing" ? "selected" : ""}>🔵 Preparing</option>
-              <option value="ready" ${order.status === "ready" ? "selected" : ""}>🟣 Ready</option>
-              <option value="delivered" ${order.status === "delivered" ? "selected" : ""}>🟠 Delivered</option>
-              <option value="cancelled" ${order.status === "cancelled" ? "selected" : ""}>🔴 Cancelled</option>
-            </select>
-          </div>
-        </div>
-      `
-    })
-    .join("")
-}
-
-// Update order status
-async function updateOrderStatus(orderId, newStatus) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status: newStatus }),
-    })
-
-    if (response.ok) {
-      loadRecentOrders() // Refresh the orders list
-      loadSalesStats() // Refresh stats
-      showNotification(`Order #${orderId} status updated to ${newStatus}`, "success")
-    } else {
-      const error = await response.json()
-      throw new Error(error.error || "Failed to update order status")
-    }
-  } catch (error) {
-    console.error("Error updating order status:", error)
-    showNotification("Failed to update order status", "error")
-  }
-}
-
-// Load sales statistics
-async function loadSalesStats() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/orders/stats/sales`)
-
-    if (!response.ok) {
-      throw new Error("Failed to load sales stats")
-    }
-
-    const stats = await response.json()
-    displaySalesStats(stats)
-  } catch (error) {
-    console.error("Error loading sales stats:", error)
-    const statsContent = document.getElementById("stats-content")
-    if (statsContent) {
-      statsContent.innerHTML = '<p style="color: red;">Failed to load statistics</p>'
-    }
-  }
-}
-
-// Display sales statistics
-function displaySalesStats(stats) {
-  const statsContent = document.getElementById("stats-content")
-  if (!statsContent) return
-
-  // Handle null/undefined stats
-  if (!stats || !stats.today || !stats.month) {
-    statsContent.innerHTML = '<p style="color: #666; text-align: center;">No statistics available yet.</p>'
-    return
-  }
-
-  const todayStats = stats.today || {}
-  const monthStats = stats.month || {}
-
-  statsContent.innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card">
-        <h4><i class="fas fa-calendar-day"></i> Today's Sales</h4>
-        <p><strong>Orders:</strong> ${todayStats.total_orders || 0}</p>
-        <p><strong>Revenue:</strong> ₹${Number.parseFloat(todayStats.total_revenue || 0).toFixed(2)}</p>
-        <p><strong>Avg Order:</strong> ₹${Number.parseFloat(todayStats.average_order_value || 0).toFixed(2)}</p>
-      </div>
-      <div class="stat-card">
-        <h4><i class="fas fa-calendar-alt"></i> This Month</h4>
-        <p><strong>Orders:</strong> ${monthStats.total_orders || 0}</p>
-        <p><strong>Revenue:</strong> ₹${Number.parseFloat(monthStats.total_revenue || 0).toFixed(2)}</p>
-      </div>
-    </div>
-  `
-}
-
 // Handle offline functionality
 window.addEventListener("online", () => {
   console.log("Connection restored")
   showNotification("Connection restored", "success")
   loadMenuData()
-  loadRecentOrders()
 })
 
 window.addEventListener("offline", () => {
   console.log("Connection lost")
   showNotification("Connection lost. Some features may not work.", "error")
 })
-
-// Auto-refresh orders every 30 seconds when admin panel is open
-setInterval(() => {
-  const adminContent = document.getElementById("admin-content")
-  if (adminContent && adminContent.style.display === "block") {
-    loadRecentOrders()
-    loadSalesStats()
-  }
-}, 30000)
 
 // Smooth scrolling for anchor links
 document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
