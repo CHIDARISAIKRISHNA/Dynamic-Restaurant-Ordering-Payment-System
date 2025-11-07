@@ -1,47 +1,9 @@
+
 const fs = require("fs")
 const path = require("path")
 
-const DEFAULT_DATA_DIR = path.join(__dirname, "../data")
-const DATA_DIR = (() => {
-  const fromEnv = process.env.DATA_DIR || process.env.ORDER_DATA_DIR
-
-  if (fromEnv) {
-    return path.resolve(fromEnv)
-  }
-
-  // Render persistent disks are commonly mounted at /data
-  if (process.env.RENDER && process.env.RENDER === "true") {
-    return "/data"
-  }
-
-  return DEFAULT_DATA_DIR
-})()
-
-const ORDERS_FILE = path.join(DATA_DIR, "orders.json")
-const ORDER_ITEMS_FILE = path.join(DATA_DIR, "order_items.json")
-
-let cachedWritableCheck = null
-
-function ensureWritableDirectory(dirPath) {
-  if (cachedWritableCheck !== null) {
-    return cachedWritableCheck
-  }
-
-  try {
-    fs.mkdirSync(dirPath, { recursive: true })
-    const testFile = path.join(dirPath, ".write-test")
-    fs.writeFileSync(testFile, "ok")
-    fs.unlinkSync(testFile)
-    cachedWritableCheck = true
-    return cachedWritableCheck
-  } catch (error) {
-    console.error(`❌ Unable to write to data directory: ${dirPath}`)
-    console.error("   -> Set DATA_DIR env var to a writable location (e.g. /data on Render)")
-    console.error("   -> Detailed error:", error.message)
-    cachedWritableCheck = false
-    return cachedWritableCheck
-  }
-}
+const ORDERS_FILE = path.join(__dirname, "../data/orders.json")
+const ORDER_ITEMS_FILE = path.join(__dirname, "../data/order_items.json")
 
 class OrderFile {
   constructor(data) {
@@ -59,11 +21,9 @@ class OrderFile {
 
   static ensureFilesExist() {
     const dir = path.dirname(ORDERS_FILE)
-
-    if (!ensureWritableDirectory(dir)) {
-      throw new Error(`Data directory is not writable: ${dir}`)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
     }
-
     if (!fs.existsSync(ORDERS_FILE)) {
       fs.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2))
     }
@@ -241,15 +201,6 @@ class OrderFile {
         today: { total_orders: 0, total_revenue: 0, average_order_value: 0 },
         month: { total_orders: 0, total_revenue: 0 },
       }
-    }
-  }
-
-  static getStorageInfo() {
-    return {
-      dataDir: DATA_DIR,
-      ordersFile: ORDERS_FILE,
-      orderItemsFile: ORDER_ITEMS_FILE,
-      writable: cachedWritableCheck !== false,
     }
   }
 }
