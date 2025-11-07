@@ -6,6 +6,7 @@ const fs = require("fs")
 // Import routes
 const menuRoutes = require("./routes/menuRoutes")
 const orderRoutes = require("./routes/orderRoutes")
+const OrderFile = require("./models/OrderFile")
 
 const app = express()
 const PORT = process.env.PORT || 3000;
@@ -17,11 +18,11 @@ const allowedOrigins = [
   'http://localhost:5500',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5500',
-  process.env.RENDER_EXTERNAL_URL,
-  'https://dynamic-restaurant-ordering-payment.onrender.com',
   process.env.FRONTEND_URL,
-  /^https:\/\/.*\.netlify\.app$/ // All Netlify deployments
-]
+  process.env.RENDER_EXTERNAL_URL,
+  /^https:\/\/.*\.netlify\.app$/,
+  /^https:\/\/.*\.onrender\.com$/
+].filter(Boolean)
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -64,9 +65,20 @@ if (fs.existsSync(frontendPath)) {
 
 // File storage initialization (no MySQL needed)
 function initializeFileStorage() {
-  console.log("📁 Using file storage (JSON files) - no MySQL needed")
-  console.log("   Orders will be saved to: backend/data/orders.json")
-  console.log("   Admin can update order status - all saved to files!")
+  const storageInfo = OrderFile.getStorageInfo()
+
+  if (storageInfo.mode === "memory") {
+    console.log("💾 Using in-memory order storage (no persistence on restart)")
+    if (!storageInfo.memoryByDefault) {
+      console.log("   Fallback triggered because JSON files are not writable")
+    } else {
+      console.log("   NODE_ENV=production -> defaulting to memory storage")
+    }
+  } else {
+    console.log("📁 Using file storage (JSON files) - no MySQL needed")
+    console.log(`   Orders file: ${storageInfo.ordersFile}`)
+    console.log(`   Order items file: ${storageInfo.orderItemsFile}`)
+  }
 }
 
 // API Routes
@@ -75,11 +87,14 @@ app.use("/api/orders", orderRoutes)
 
 // Storage info endpoint
 app.get("/api/storage-info", (req, res) => {
+  const storageInfo = OrderFile.getStorageInfo()
+
   res.json({
     success: true,
-    message: "📁 Using file storage (JSON files)",
-    storage: "file",
-    files: ["backend/data/orders.json", "backend/data/order_items.json"]
+    storage: storageInfo.mode,
+    ordersFile: storageInfo.ordersFile,
+    orderItemsFile: storageInfo.orderItemsFile,
+    memoryByDefault: storageInfo.memoryByDefault,
   })
 })
 
