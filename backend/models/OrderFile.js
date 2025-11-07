@@ -4,7 +4,10 @@ const path = require("path")
 const ORDERS_FILE = path.join(__dirname, "../data/orders.json")
 const ORDER_ITEMS_FILE = path.join(__dirname, "../data/order_items.json")
 
-let useMemoryOnly = false
+const memoryByDefault =
+  process.env.USE_MEMORY_STORAGE === "true" || process.env.NODE_ENV === "production"
+
+let useMemoryOnly = memoryByDefault
 let memoryOrders = []
 let memoryOrderItems = []
 
@@ -274,6 +277,19 @@ class OrderFile {
         today: { total_orders: 0, total_revenue: 0, average_order_value: 0 },
         month: { total_orders: 0, total_revenue: 0 },
       }
+    }
+  }
+
+  static isMemoryOnly() {
+    return useMemoryOnly
+  }
+
+  static getStorageInfo() {
+    return {
+      mode: useMemoryOnly ? "memory" : "file",
+      ordersFile: ORDERS_FILE,
+      orderItemsFile: ORDER_ITEMS_FILE,
+      memoryByDefault,
     }
   }
 }
