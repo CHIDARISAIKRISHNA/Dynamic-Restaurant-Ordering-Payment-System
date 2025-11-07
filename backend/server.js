@@ -6,7 +6,6 @@ const fs = require("fs")
 // Import routes
 const menuRoutes = require("./routes/menuRoutes")
 const orderRoutes = require("./routes/orderRoutes")
-const OrderFile = require("./models/OrderFile")
 
 const app = express()
 const PORT = process.env.PORT || 3000;
@@ -63,22 +62,9 @@ if (fs.existsSync(frontendPath)) {
 
 // File storage initialization (no MySQL needed)
 function initializeFileStorage() {
-  try {
-    OrderFile.ensureFilesExist()
-    const storageInfo = OrderFile.getStorageInfo()
-
-    console.log("📁 Using file storage (JSON files) - no MySQL needed")
-    console.log(`   Data directory: ${storageInfo.dataDir}`)
-    console.log(`   Orders file: ${storageInfo.ordersFile}`)
-    console.log(`   Order items file: ${storageInfo.orderItemsFile}`)
-
-    if (!storageInfo.writable) {
-      console.warn("⚠️ Data directory is not writable. Set DATA_DIR env var to a persistent disk path.")
-    }
-  } catch (error) {
-    console.error("❌ Failed to initialize file storage:", error.message)
-    console.error("   -> Ensure DATA_DIR env var points to a writable directory (e.g. /data on Render)")
-  }
+  console.log("📁 Using file storage (JSON files) - no MySQL needed")
+  console.log("   Orders will be saved to: backend/data/orders.json")
+  console.log("   Admin can update order status - all saved to files!")
 }
 
 // API Routes
@@ -87,15 +73,11 @@ app.use("/api/orders", orderRoutes)
 
 // Storage info endpoint
 app.get("/api/storage-info", (req, res) => {
-  const storageInfo = OrderFile.getStorageInfo()
-
   res.json({
     success: true,
     message: "📁 Using file storage (JSON files)",
     storage: "file",
-    dataDir: storageInfo.dataDir,
-    files: [storageInfo.ordersFile, storageInfo.orderItemsFile],
-    writable: storageInfo.writable,
+    files: ["backend/data/orders.json", "backend/data/order_items.json"]
   })
 })
 
