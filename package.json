@@ -7,8 +7,7 @@
   "scripts": {
     "start": "cd backend && npm start",
     "dev": "cd backend && npm run dev",
-    "build": "next build",
-    "lint": "next lint",
+    "build": "echo 'No build step needed'",
     "install-backend": "cd backend && npm install",
     "install-all": "npm run install-backend"
   },
