@@ -37,6 +37,11 @@
                         <i class="fas fa-phone"></i> Contact
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="showSection('track')">
+                        <i class="fas fa-shipping-fast"></i> Track Order
+                    </a>
+                </li>
             </ul>
             <div class="nav-toggle" id="nav-toggle">
                 <span class="bar"></span>
@@ -383,6 +388,64 @@
         </div>
     </section>
 
+    <!-- Track Order Section -->
+    <section id="track-section" class="section">
+        <div class="track-container">
+            <div class="track-header">
+                <h1 class="page-title"><i class="fas fa-shipping-fast"></i> Track Your Order</h1>
+                <p class="page-subtitle">Enter your order number to see real-time status updates</p>
+            </div>
+
+            <div class="track-search">
+                <form class="search-form" onsubmit="searchOrder(event)">
+                    <input 
+                        type="text" 
+                        id="order-search" 
+                        class="search-input" 
+                        placeholder="Enter Order Number (e.g., 123)"
+                        required
+                    >
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-search"></i> Track Order
+                    </button>
+                </form>
+            </div>
+
+            <div class="order-status-message" id="order-status-message" style="display: none;"></div>
+
+            <div class="order-status-container" id="order-status-container" style="display: none;">
+                <div class="order-details" id="order-details"></div>
+                <div class="status-timeline" id="status-timeline"></div>
+                <div class="ai-insights" id="ai-insights"></div>
+            </div>
+
+            <div class="chatbot-container">
+                <div class="chatbot-header">
+                    <i class="fas fa-robot" style="color: #e74c3c; font-size: 1.5rem;"></i>
+                    <h3>AI Order Assistant</h3>
+                </div>
+                <div class="chatbot-messages" id="chatbot-messages">
+                    <div class="chat-message bot">
+                        <div class="message-bubble">
+                            👋 Hi! I'm your AI order assistant. I can help you track your order, check delivery times, and answer questions about your order status. Just ask me anything!
+                        </div>
+                    </div>
+                </div>
+                <div class="chatbot-input-container">
+                    <input 
+                        type="text" 
+                        id="chatbot-input" 
+                        class="chatbot-input" 
+                        placeholder="Ask me about your order..."
+                        onkeypress="handleChatEnter(event)"
+                    >
+                    <button class="chatbot-send" onclick="sendChatMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Newsletter Signup -->
     <!-- Footer -->
@@ -401,6 +464,7 @@
                 <ul>
                     <li><a href="#" onclick="showSection('welcome')">Home</a></li>
                     <li><a href="#" onclick="showSection('menu')">Menu</a></li>
+                    <li><a href="#" onclick="showSection('track')">Track Order</a></li>
                     <li><a href="#" onclick="showSection('about')">About</a></li>
                     <li><a href="#" onclick="showSection('contact')">Contact</a></li>
                 </ul>

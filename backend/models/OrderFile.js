@@ -4,6 +4,21 @@ const path = require("path")
 const ORDERS_FILE = path.join(__dirname, "../data/orders.json")
 const ORDER_ITEMS_FILE = path.join(__dirname, "../data/order_items.json")
 
+const memoryByDefault =
+  process.env.USE_MEMORY_STORAGE === "true" || process.env.NODE_ENV === "production"
+
+let useMemoryOnly = memoryByDefault
+let memoryOrders = []
+let memoryOrderItems = []
+
+function switchToMemoryStorage(reason) {
+  if (!useMemoryOnly) {
+    console.warn("⚠️ Falling back to in-memory order storage:", reason)
+    console.warn("   Orders will NOT persist after server restarts.")
+  }
+  useMemoryOnly = true
+}
+
 class OrderFile {
   constructor(data) {
     this.id = data.id
@@ -19,23 +34,85 @@ class OrderFile {
   }
 
   static ensureFilesExist() {
+    if (useMemoryOnly) return
+
     const dir = path.dirname(ORDERS_FILE)
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true })
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true })
+      }
+      if (!fs.existsSync(ORDERS_FILE)) {
+        fs.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2))
+      }
+      if (!fs.existsSync(ORDER_ITEMS_FILE)) {
+        fs.writeFileSync(ORDER_ITEMS_FILE, JSON.stringify([], null, 2))
+      }
+    } catch (error) {
+      switchToMemoryStorage(error.message)
     }
-    if (!fs.existsSync(ORDERS_FILE)) {
-      fs.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2))
+  }
+
+  static readOrdersData() {
+    if (useMemoryOnly) {
+      return memoryOrders
     }
-    if (!fs.existsSync(ORDER_ITEMS_FILE)) {
-      fs.writeFileSync(ORDER_ITEMS_FILE, JSON.stringify([], null, 2))
+
+    try {
+      memoryOrders = JSON.parse(fs.readFileSync(ORDERS_FILE, "utf8"))
+      return memoryOrders
+    } catch (error) {
+      switchToMemoryStorage(error.message)
+      return memoryOrders
+    }
+  }
+
+  static readOrderItemsData() {
+    if (useMemoryOnly) {
+      return memoryOrderItems
+    }
+
+    try {
+      memoryOrderItems = JSON.parse(fs.readFileSync(ORDER_ITEMS_FILE, "utf8"))
+      return memoryOrderItems
+    } catch (error) {
+      switchToMemoryStorage(error.message)
+      return memoryOrderItems
+    }
+  }
+
+  static writeOrdersData(data) {
+    if (useMemoryOnly) {
+      memoryOrders = data
+      return
+    }
+
+    try {
+      fs.writeFileSync(ORDERS_FILE, JSON.stringify(data, null, 2))
+    } catch (error) {
+      switchToMemoryStorage(error.message)
+      memoryOrders = data
+    }
+  }
+
+  static writeOrderItemsData(data) {
+    if (useMemoryOnly) {
+      memoryOrderItems = data
+      return
+    }
+
+    try {
+      fs.writeFileSync(ORDER_ITEMS_FILE, JSON.stringify(data, null, 2))
+    } catch (error) {
+      switchToMemoryStorage(error.message)
+      memoryOrderItems = data
     }
   }
 
   static getAll(limit = 50) {
     try {
       OrderFile.ensureFilesExist()
-      const ordersData = JSON.parse(fs.readFileSync(ORDERS_FILE, "utf8"))
-      const itemsData = JSON.parse(fs.readFileSync(ORDER_ITEMS_FILE, "utf8"))
+      const ordersData = OrderFile.readOrdersData()
+      const itemsData = OrderFile.readOrderItemsData()
 
       const orders = ordersData
         .slice(0, limit)
@@ -55,8 +132,8 @@ class OrderFile {
   static getById(id) {
     try {
       OrderFile.ensureFilesExist()
-      const ordersData = JSON.parse(fs.readFileSync(ORDERS_FILE, "utf8"))
-      const itemsData = JSON.parse(fs.readFileSync(ORDER_ITEMS_FILE, "utf8"))
+      const ordersData = OrderFile.readOrdersData()
+      const itemsData = OrderFile.readOrderItemsData()
 
       const orderData = ordersData.find((o) => o.id === Number.parseInt(id))
       if (!orderData) return null
@@ -73,8 +150,8 @@ class OrderFile {
     try {
       OrderFile.ensureFilesExist()
       
-      const ordersData = JSON.parse(fs.readFileSync(ORDERS_FILE, "utf8"))
-      const itemsData = JSON.parse(fs.readFileSync(ORDER_ITEMS_FILE, "utf8"))
+      const ordersData = OrderFile.readOrdersData()
+      const itemsData = OrderFile.readOrderItemsData()
 
       const newId = ordersData.length > 0 ? Math.max(...ordersData.map((o) => o.id)) + 1 : 1
 
@@ -91,7 +168,7 @@ class OrderFile {
       }
 
       ordersData.push(newOrder)
-      fs.writeFileSync(ORDERS_FILE, JSON.stringify(ordersData, null, 2))
+      OrderFile.writeOrdersData(ordersData)
 
       if (orderData.items && orderData.items.length > 0) {
         let nextItemId = itemsData.length > 0 ? Math.max(...itemsData.map((i) => (i.id || 0))) + 1 : 1
@@ -107,11 +184,10 @@ class OrderFile {
             created_at: new Date().toISOString(),
           })
         })
-        fs.writeFileSync(ORDER_ITEMS_FILE, JSON.stringify(itemsData, null, 2))
+        OrderFile.writeOrderItemsData(itemsData)
       }
 
       const savedOrder = OrderFile.getById(newId)
-      console.log(`✅ Order #${newId} saved to JSON file!`)
       return savedOrder
     } catch (error) {
       console.error("Error creating order:", error)
@@ -122,7 +198,7 @@ class OrderFile {
   static updateStatus(id, status) {
     try {
       OrderFile.ensureFilesExist()
-      const ordersData = JSON.parse(fs.readFileSync(ORDERS_FILE, "utf8"))
+      const ordersData = OrderFile.readOrdersData()
 
       const orderIndex = ordersData.findIndex((o) => o.id === Number.parseInt(id))
       if (orderIndex === -1) return null
@@ -130,9 +206,8 @@ class OrderFile {
       ordersData[orderIndex].status = status
       ordersData[orderIndex].updated_at = new Date().toISOString()
 
-      fs.writeFileSync(ORDERS_FILE, JSON.stringify(ordersData, null, 2))
+      OrderFile.writeOrdersData(ordersData)
 
-      console.log(`✅ Order #${id} status updated to "${status}" in JSON file`)
       return OrderFile.getById(id)
     } catch (error) {
       console.error("Error updating order status:", error)
@@ -143,8 +218,8 @@ class OrderFile {
   static getByStatus(status) {
     try {
       OrderFile.ensureFilesExist()
-      const ordersData = JSON.parse(fs.readFileSync(ORDERS_FILE, "utf8"))
-      const itemsData = JSON.parse(fs.readFileSync(ORDER_ITEMS_FILE, "utf8"))
+      const ordersData = OrderFile.readOrdersData()
+      const itemsData = OrderFile.readOrderItemsData()
 
       const filtered = ordersData
         .filter((o) => o.status === status)
@@ -164,7 +239,7 @@ class OrderFile {
   static getSalesStats() {
     try {
       OrderFile.ensureFilesExist()
-      const ordersData = JSON.parse(fs.readFileSync(ORDERS_FILE, "utf8"))
+      const ordersData = OrderFile.readOrdersData()
 
       const today = new Date().toISOString().split("T")[0]
       const thisMonth = new Date().toISOString().substring(0, 7)
@@ -200,6 +275,19 @@ class OrderFile {
         today: { total_orders: 0, total_revenue: 0, average_order_value: 0 },
         month: { total_orders: 0, total_revenue: 0 },
       }
+    }
+  }
+
+  static isMemoryOnly() {
+    return useMemoryOnly
+  }
+
+  static getStorageInfo() {
+    return {
+      mode: useMemoryOnly ? "memory" : "file",
+      ordersFile: ORDERS_FILE,
+      orderItemsFile: ORDER_ITEMS_FILE,
+      memoryByDefault,
     }
   }
 }

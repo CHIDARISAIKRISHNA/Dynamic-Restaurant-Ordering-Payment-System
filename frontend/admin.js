@@ -1,6 +1,6 @@
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? `http://${window.location.hostname}:3000/api`
-  : "https://dynamic-restaurant-ordering-payment.onrender.com/api"
+  : `${window.location.origin}/api`
 
 let allOrders = []
 
@@ -298,11 +298,126 @@ function showNotification(message, type = "info") {
   }, 3000)
 }
 
+async function loadAIRecommendations() {
+  const recommendationsDiv = document.getElementById("ai-recommendations")
+  if (!recommendationsDiv) return
+
+  recommendationsDiv.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;"><i class="fas fa-spinner fa-spin"></i> Loading AI recommendations...</p>'
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/ai/recommendations?limit=20`)
+
+    if (!response.ok) {
+      throw new Error("Failed to load AI recommendations")
+    }
+
+    const data = await response.json()
+    displayAIRecommendations(data.recommendations || [])
+  } catch (error) {
+    console.error("Error loading AI recommendations:", error)
+    recommendationsDiv.innerHTML = `
+      <div style="padding: 20px; text-align: center; color: red;">
+        <p><strong>Failed to load AI recommendations</strong></p>
+        <p style="font-size: 0.9rem; margin-top: 10px;">${error.message}</p>
+        <button onclick="loadAIRecommendations()" class="refresh-btn" style="margin-top: 10px;">
+          <i class="fas fa-sync"></i> Retry
+        </button>
+      </div>
+    `
+  }
+}
+
+function displayAIRecommendations(recommendations) {
+  const recommendationsDiv = document.getElementById("ai-recommendations")
+  if (!recommendationsDiv) return
+
+  if (recommendations.length === 0) {
+    recommendationsDiv.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #666;">
+        <i class="fas fa-brain" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
+        <p><strong>No AI Recommendations</strong></p>
+        <p style="font-size: 0.9rem; margin-top: 10px;">All orders are up to date, or there are no active orders to analyze.</p>
+      </div>
+    `
+    return
+  }
+
+  const recommendationsHTML = `
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+      <h3 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px;">
+        <i class="fas fa-brain"></i> AI-Powered Recommendations
+      </h3>
+      <p style="margin: 0; opacity: 0.9;">Based on historical data and order patterns, here are ${recommendations.length} recommendations:</p>
+    </div>
+    ${recommendations.map(rec => `
+      <div class="order-item" style="border-left-color: #667eea; position: relative;">
+        <div style="position: absolute; top: 10px; right: 10px; background: #667eea; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.8rem; font-weight: 600;">
+          ${rec.confidence}% Confidence
+        </div>
+        <div class="order-header">
+          <h5>Order #${rec.orderId} - ${rec.customerName}</h5>
+          <span class="status-badge status-${rec.currentStatus}">
+            ${rec.currentStatus.charAt(0).toUpperCase() + rec.currentStatus.slice(1)}
+          </span>
+        </div>
+        <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; margin-top: 15px;">
+          <p style="margin: 0 0 10px 0; color: #667eea; font-weight: 600;">
+            <i class="fas fa-lightbulb"></i> AI Recommendation:
+          </p>
+          <p style="margin: 0 0 10px 0; font-size: 1.05rem;">
+            <strong>${rec.recommendedAction}</strong>
+          </p>
+          <p style="margin: 0; color: #666; font-size: 0.9rem;">
+            ${rec.reason}
+          </p>
+          <p style="margin: 10px 0 0 0; color: #999; font-size: 0.85rem;">
+            <i class="fas fa-clock"></i> Elapsed: ${rec.elapsedMinutes} minutes
+          </p>
+        </div>
+        <div style="margin-top: 15px;">
+          <button 
+            onclick="applyAIRecommendation(${rec.orderId}, '${rec.recommendedAction.split(' ').pop()}')" 
+            class="refresh-btn" 
+            style="background: #667eea; width: 100%;"
+          >
+            <i class="fas fa-check"></i> Apply Recommendation
+          </button>
+        </div>
+      </div>
+    `).join('')}
+  `
+
+  recommendationsDiv.innerHTML = recommendationsHTML
+}
+
+async function applyAIRecommendation(orderId, newStatus) {
+  if (!confirm(`Apply AI recommendation: Update Order #${orderId} to "${newStatus}"?`)) {
+    return
+  }
+
+  try {
+    await updateOrderStatus(orderId, newStatus)
+    showNotification(`AI recommendation applied! Order #${orderId} updated to ${newStatus}`, "success")
+    loadAIRecommendations() // Refresh recommendations
+  } catch (error) {
+    showNotification(`Failed to apply recommendation: ${error.message}`, "error")
+  }
+}
+
+window.loadAIRecommendations = loadAIRecommendations
+window.applyAIRecommendation = applyAIRecommendation
+
 setInterval(() => {
   const adminContent = document.getElementById("admin-content")
   if (adminContent && adminContent.classList.contains('active')) {
     loadRecentOrders()
     loadSalesStats()
+    
+    // Only refresh AI recommendations if on AI tab
+    const aiTab = document.getElementById("admin-ai")
+    if (aiTab && aiTab.classList.contains('active')) {
+      loadAIRecommendations()
+    }
   }
 }, 30000)
 

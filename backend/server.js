@@ -6,6 +6,8 @@ const fs = require("fs")
 // Import routes
 const menuRoutes = require("./routes/menuRoutes")
 const orderRoutes = require("./routes/orderRoutes")
+const aiRoutes = require("./routes/aiRoutes")
+const OrderFile = require("./models/OrderFile")
 
 const app = express()
 const PORT = process.env.PORT || 3000;
@@ -18,8 +20,10 @@ const allowedOrigins = [
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5500',
   process.env.FRONTEND_URL,
-  /^https:\/\/.*\.netlify\.app$/ // All Netlify deployments
-]
+  process.env.RENDER_EXTERNAL_URL,
+  /^https:\/\/.*\.netlify\.app$/,
+  /^https:\/\/.*\.onrender\.com$/
+].filter(Boolean)
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -53,8 +57,7 @@ app.use(cors({
 }))
 app.use(express.json())
 
-// Serve frontend files if they exist (for local development)
-// In production, frontend will be on Netlify
+// Serve frontend files (for both local and production)
 const frontendPath = path.join(__dirname, "../frontend")
 if (fs.existsSync(frontendPath)) {
   app.use(express.static(frontendPath))
@@ -62,22 +65,25 @@ if (fs.existsSync(frontendPath)) {
 
 // File storage initialization (no MySQL needed)
 function initializeFileStorage() {
-  console.log("📁 Using file storage (JSON files) - no MySQL needed")
-  console.log("   Orders will be saved to: backend/data/orders.json")
-  console.log("   Admin can update order status - all saved to files!")
+  const storageInfo = OrderFile.getStorageInfo()
+  // Silently initialize storage - no console output needed
 }
 
 // API Routes
 app.use("/api/menu", menuRoutes)
 app.use("/api/orders", orderRoutes)
+app.use("/api/ai", aiRoutes)
 
 // Storage info endpoint
 app.get("/api/storage-info", (req, res) => {
+  const storageInfo = OrderFile.getStorageInfo()
+
   res.json({
     success: true,
-    message: "📁 Using file storage (JSON files)",
-    storage: "file",
-    files: ["backend/data/orders.json", "backend/data/order_items.json"]
+    storage: storageInfo.mode,
+    ordersFile: storageInfo.ordersFile,
+    orderItemsFile: storageInfo.orderItemsFile,
+    memoryByDefault: storageInfo.memoryByDefault,
   })
 })
 
@@ -90,34 +96,39 @@ app.get("/api/health", (req, res) => {
   })
 })
 
-// Serve frontend (if exists - for local dev only)
+// Serve frontend index page
+// This route must be defined before the 404 handler
 app.get("/", (req, res) => {
-  const indexPath = path.join(__dirname, "../frontend", "index.html")
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath)
-  } else {
-    res.json({
-      message: "Restaurant API is running",
-      note: "Frontend is deployed separately on Netlify",
-      api: {
-        health: "/api/health",
-        menu: "/api/menu",
-        orders: "/api/orders",
-        storageInfo: "/api/storage-info"
-      }
-    })
+  try {
+    const indexPath = path.join(__dirname, "../frontend", "index.html")
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath)
+    }
+  } catch (error) {
+    console.error("Error serving frontend:", error)
   }
+  
+  // Return API info if frontend not found
+  res.json({
+    message: "Restaurant API is running",
+    status: "online",
+    api: {
+      health: "/api/health",
+      menu: "/api/menu",
+      orders: "/api/orders",
+      storageInfo: "/api/storage-info"
+    }
+  })
 })
 
-// Serve admin page (if exists - for local dev only)
+// Serve admin page
 app.get("/admin", (req, res) => {
   const adminPath = path.join(__dirname, "../frontend", "admin.html")
   if (fs.existsSync(adminPath)) {
     res.sendFile(adminPath)
   } else {
-    res.json({
-      message: "Admin panel not available on backend",
-      note: "Admin panel is deployed on Netlify at /admin route"
+    res.status(404).json({
+      error: "Admin panel not found"
     })
   }
 })
@@ -127,7 +138,7 @@ app.get("/admin.html", (req, res) => {
   res.redirect("/admin")
 })
 
-// Error handling middleware
+// Error handling middleware (must be before 404 handler)
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err)
   res.status(500).json({
@@ -136,14 +147,41 @@ app.use((err, req, res, next) => {
   })
 })
 
-// Redirect admin.html to /admin (before 404 handler)
-app.get("/admin.html", (req, res) => {
-  res.redirect("/admin")
+// Handle frontend routes (SPA) - serve index.html for non-API routes
+app.get("*", (req, res, next) => {
+  // Skip if it's an API route
+  if (req.path.startsWith("/api")) {
+    return next()
+  }
+  
+  // Skip if it's admin route (already handled)
+  if (req.path === "/admin" || req.path === "/admin.html") {
+    return next()
+  }
+  
+  // Serve index.html for all other routes (frontend SPA routing)
+  const indexPath = path.join(__dirname, "../frontend", "index.html")
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath)
+  }
+  
+  next()
 })
 
-// Handle 404
+// Handle 404 - must be last
 app.use("*", (req, res) => {
-  res.status(404).json({ error: "Route not found" })
+  res.status(404).json({ 
+    error: "Route not found",
+    message: "The requested route does not exist",
+    availableRoutes: {
+      root: "/",
+      admin: "/admin",
+      health: "/api/health",
+      menu: "/api/menu",
+      orders: "/api/orders",
+      storageInfo: "/api/storage-info"
+    }
+  })
 })
 
 // Graceful shutdown
@@ -163,11 +201,9 @@ function startServer() {
   initializeFileStorage()
 
   const server = app.listen(PORT, () => {
-    console.log(`\n✅ Server running on port ${PORT}`)
-    console.log(`✅ API endpoints available at http://localhost:${PORT}/api`)
-    console.log(`✅ Frontend: http://localhost:${PORT}`)
-    console.log(`✅ Admin: http://localhost:${PORT}/admin`)
-    console.log(`\n💡 Using file storage - orders saved to JSON files (no MySQL needed!)\n`)
+    console.log(`\n✅ Server running on port ${PORT}\n`)
+    console.log(`👥 User: http://localhost:${PORT}`)
+    console.log(`🔐 Admin: http://localhost:${PORT}/admin\n`)
   })
 
   server.on('error', (error) => {

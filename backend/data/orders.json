@@ -20,5 +20,71 @@
     "payment_mode": "cash",
     "created_at": "2025-11-06T07:12:31.571Z",
     "updated_at": "2025-11-06T07:12:45.791Z"
+  },
+  {
+    "id": 3,
+    "customer_name": "sai",
+    "customer_phone": "1298967866",
+    "total_amount": 28.75,
+    "tax_amount": 4.3125,
+    "status": "preparing",
+    "payment_mode": "cash",
+    "created_at": "2025-11-07T10:11:06.870Z",
+    "updated_at": "2025-11-07T10:11:21.102Z"
+  },
+  {
+    "id": 4,
+    "customer_name": "sdjb",
+    "customer_phone": "27735275715",
+    "total_amount": 34.5,
+    "tax_amount": 5.175,
+    "status": "pending",
+    "payment_mode": "cash",
+    "created_at": "2025-11-17T16:04:34.384Z",
+    "updated_at": "2025-11-17T16:04:34.384Z"
+  },
+  {
+    "id": 5,
+    "customer_name": "Sai771",
+    "customer_phone": "91324245900",
+    "total_amount": 28.75,
+    "tax_amount": 4.3125,
+    "status": "delivered",
+    "payment_mode": "cash",
+    "created_at": "2025-12-02T04:10:52.526Z",
+    "updated_at": "2025-12-02T04:13:26.533Z"
+  },
+  {
+    "id": 6,
+    "customer_name": "Bharath 1",
+    "customer_phone": "9010854701",
+    "total_amount": 103.5,
+    "tax_amount": 15.524999999999999,
+    "status": "cancelled",
+    "payment_mode": "cash",
+    "created_at": "2025-12-02T04:29:29.464Z",
+    "updated_at": "2025-12-02T04:37:21.933Z"
+  },
+  {
+    "id": 7,
+    "customer_name": "hello",
+    "customer_phone": "1234543219",
+    "total_amount": 92,
+    "tax_amount": 13.799999999999999,
+    "status": "delivered",
+    "payment_mode": "cash",
+    "created_at": "2025-12-02T04:50:55.344Z",
+    "updated_at": "2025-12-02T04:51:44.932Z"
+  },
+  {
+    "id": 8,
+    "customer_name": "bunny",
+    "customer_phone": "43222225423",
+    "total_amount": 63.25,
+    "tax_amount": 9.487499999999999,
+    "status": "confirmed",
+    "payment_mode": "cash",
+    "created_at": "2025-12-02T04:53:42.004Z",
+    "updated_at": "2025-12-02T04:54:12.226Z"
   }
 ]

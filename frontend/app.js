@@ -1,8 +1,8 @@
 // API Configuration
-// Use local API when running on localhost, otherwise use remote URL
+// Use local API when running on localhost, otherwise use same origin (backend serves frontend)
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? `http://${window.location.hostname}:3000/api`
-  : "https://dynamic-restaurant-ordering-payment.onrender.com/api"
+  : `${window.location.origin}/api`
 
 // Global variables
 let menuItems = {}
@@ -11,6 +11,49 @@ let currentSection = "welcome"
 let orderItems = []
 let currentTotal = 0
 let itemQuantities = {} // Store quantities across category switches
+let currentOrderId = null // For order tracking
+
+// Status configuration for tracking
+const statusConfig = {
+  pending: {
+    icon: '⏳',
+    label: 'Pending',
+    description: 'Your order is pending confirmation',
+    color: '#f39c12'
+  },
+  confirmed: {
+    icon: '✅',
+    label: 'Confirmed',
+    description: 'Your order has been confirmed',
+    color: '#27ae60'
+  },
+  preparing: {
+    icon: '👨‍🍳',
+    label: 'Preparing',
+    description: 'Your order is being prepared',
+    color: '#3498db'
+  },
+  ready: {
+    icon: '🎉',
+    label: 'Ready',
+    description: 'Your order is ready for pickup/delivery',
+    color: '#9b59b6'
+  },
+  delivered: {
+    icon: '🚚',
+    label: 'Delivered',
+    description: 'Your order has been delivered',
+    color: '#e67e22'
+  },
+  cancelled: {
+    icon: '❌',
+    label: 'Cancelled',
+    description: 'This order has been cancelled',
+    color: '#e74c3c'
+  }
+}
+
+const statusFlow = ['pending', 'confirmed', 'preparing', 'ready', 'delivered']
 
 // Admin panel removed from main page - use admin.html instead
 // No admin access control needed on main page
@@ -23,6 +66,20 @@ document.addEventListener("DOMContentLoaded", () => {
   initializeApp()
   setupEventListeners()
   showWelcomeAnimations()
+  
+  // Check for order ID in URL to auto-load tracking
+  const urlParams = new URLSearchParams(window.location.search)
+  const orderId = urlParams.get('orderId')
+  
+  if (orderId) {
+    showSection('track')
+    const orderInput = document.getElementById('order-search')
+    if (orderInput) {
+      orderInput.value = orderId
+      currentOrderId = orderId
+      loadOrderStatus(orderId)
+    }
+  }
 })
 
 // Initialize application
@@ -659,6 +716,11 @@ async function placeOrder() {
           <div class="order-success">
             <i class="fas fa-check-circle"></i>
             Order placed successfully! Order ID: #${result.orderId}
+            <div style="margin-top: 15px;">
+              <button onclick="showSection('track'); document.getElementById('order-search').value = '${result.orderId}'; currentOrderId = '${result.orderId}'; loadOrderStatus('${result.orderId}');" style="display: inline-block; padding: 10px 20px; background: #27ae60; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 10px; border: none; cursor: pointer;">
+                <i class="fas fa-shipping-fast"></i> Track Your Order
+              </button>
+            </div>
           </div>
         `
       }
@@ -671,6 +733,14 @@ async function placeOrder() {
 
       // Show success notification
       showNotification("Order placed successfully!", "success")
+      
+      // Auto-redirect to track section with order ID
+      setTimeout(() => {
+        showSection('track')
+        document.getElementById('order-search').value = result.orderId
+        currentOrderId = result.orderId
+        loadOrderStatus(result.orderId)
+      }, 2000)
     } else {
       throw new Error(result.error || "Failed to place order")
     }
@@ -797,3 +867,367 @@ document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     }
   })
 })
+
+// ==================== ORDER TRACKING FUNCTIONS ====================
+
+// Search for order
+async function searchOrder(event) {
+  event.preventDefault()
+  const orderInput = document.getElementById('order-search')
+  if (!orderInput) return
+  
+  const orderId = orderInput.value.trim()
+
+  if (!orderId) {
+    showNotification('Please enter an order number', 'error')
+    return
+  }
+
+  currentOrderId = orderId
+  await loadOrderStatus(orderId)
+}
+
+// Load order status
+async function loadOrderStatus(orderId) {
+  const container = document.getElementById('order-status-container')
+  const detailsDiv = document.getElementById('order-details')
+  const timelineDiv = document.getElementById('status-timeline')
+  const insightsDiv = document.getElementById('ai-insights')
+
+  if (!container || !detailsDiv || !timelineDiv || !insightsDiv) return
+
+  try {
+    // Load order
+    const orderResponse = await fetch(`${API_BASE_URL}/orders/${orderId}`)
+    if (!orderResponse.ok) {
+      throw new Error('Order not found')
+    }
+
+    const order = await orderResponse.json()
+
+    // Load AI insights
+    let insights = null
+    try {
+      const insightsResponse = await fetch(`${API_BASE_URL}/ai/orders/${orderId}/insights`)
+      if (insightsResponse.ok) {
+        const insightsData = await insightsResponse.json()
+        insights = insightsData.insights
+      }
+    } catch (error) {
+      console.error('Error loading AI insights:', error)
+    }
+
+    // Display order details
+    const itemsList = order.items && order.items.length > 0
+      ? order.items.map(item => `${item.name} (${item.quantity}×)`).join(', ')
+      : 'No items'
+
+    detailsDiv.innerHTML = `
+      <h4 style="margin: 0 0 15px 0; color: #2c3e50;"><i class="fas fa-receipt"></i> Order Details</h4>
+      <div class="detail-row" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+        <span><strong>Order ID:</strong></span>
+        <span>#${order.id}</span>
+      </div>
+      <div class="detail-row" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+        <span><strong>Customer:</strong></span>
+        <span>${order.customer_name || 'Guest'}</span>
+      </div>
+      <div class="detail-row" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+        <span><strong>Items:</strong></span>
+        <span>${itemsList}</span>
+      </div>
+      <div class="detail-row" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+        <span><strong>Total Amount:</strong></span>
+        <span>₹${parseFloat(order.total_amount || 0).toFixed(2)}</span>
+      </div>
+      <div class="detail-row" style="display: flex; justify-content: space-between; padding: 8px 0;">
+        <span><strong>Order Date:</strong></span>
+        <span>${order.created_at ? new Date(order.created_at).toLocaleString() : 'N/A'}</span>
+      </div>
+    `
+
+    // Display status timeline
+    const currentStatus = order.status || 'pending'
+    const currentIndex = statusFlow.indexOf(currentStatus)
+
+    timelineDiv.innerHTML = statusFlow.map((status, index) => {
+      const config = statusConfig[status]
+      let stepClass = 'status-step'
+      let iconStyle = `width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-right: 20px; position: relative; z-index: 1;`
+      
+      if (index < currentIndex) {
+        stepClass += ' completed'
+        iconStyle += `background: ${config.color}; color: white;`
+      } else if (index === currentIndex) {
+        stepClass += ' active'
+        iconStyle += `background: ${config.color}; color: white; animation: pulse 2s infinite;`
+      } else {
+        iconStyle += `background: #e0e0e0; color: #7f8c8d;`
+      }
+
+      return `
+        <div class="${stepClass}" style="display: flex; align-items: center; margin-bottom: 30px; position: relative;">
+          <div class="status-icon" style="${iconStyle}">
+            ${config.icon}
+          </div>
+          <div class="status-info" style="flex: 1;">
+            <h3 style="margin: 0 0 5px 0; color: #2c3e50; font-size: 1.2rem;">${config.label}</h3>
+            <p style="margin: 0; color: #7f8c8d; font-size: 0.9rem;">${config.description}</p>
+          </div>
+        </div>
+      `
+    }).join('')
+
+    // Add CSS for pulse animation if not exists
+    if (!document.querySelector('#track-styles')) {
+      const styles = document.createElement('style')
+      styles.id = 'track-styles'
+      styles.textContent = `
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+        }
+        .status-step::before {
+          content: '';
+          position: absolute;
+          left: 20px;
+          top: 50px;
+          width: 2px;
+          height: 40px;
+          background: ${currentIndex > 0 ? '#27ae60' : '#e0e0e0'};
+        }
+        .status-step:last-child::before {
+          display: none;
+        }
+      `
+      document.head.appendChild(styles)
+    }
+
+    // Display AI insights
+    if (insights) {
+      let insightsHTML = `
+        <h3 style="margin: 0 0 15px 0; display: flex; align-items: center; gap: 10px;"><i class="fas fa-brain"></i> AI-Powered Insights</h3>
+      `
+
+      if (insights.prediction) {
+        insightsHTML += `
+          <p style="margin: 10px 0; line-height: 1.6;"><strong>💡 Recommendation:</strong> ${insights.prediction.reason}</p>
+          <p style="margin: 10px 0; line-height: 1.6;"><strong>⏱️ Elapsed Time:</strong> ${insights.elapsedMinutes} minutes</p>
+        `
+      }
+
+      if (insights.estimatedDelivery && order.status !== 'delivered' && order.status !== 'cancelled') {
+        const deliveryTime = new Date(insights.estimatedDelivery)
+        insightsHTML += `
+          <p style="margin: 10px 0; line-height: 1.6;"><strong>📅 Estimated Delivery:</strong> ${deliveryTime.toLocaleString()}</p>
+        `
+      }
+
+      if (insights.insights && insights.insights.length > 0) {
+        insightsHTML += '<div style="margin-top: 15px;">'
+        insights.insights.forEach(insight => {
+          insightsHTML += `<p style="margin: 10px 0; line-height: 1.6;"><strong>${insight.type === 'warning' ? '⚠️' : 'ℹ️'}</strong> ${insight.message}</p>`
+        })
+        insightsHTML += '</div>'
+      }
+
+      insightsDiv.innerHTML = insightsHTML
+    } else {
+      insightsDiv.innerHTML = `
+        <h3 style="margin: 0 0 15px 0; display: flex; align-items: center; gap: 10px;"><i class="fas fa-brain"></i> AI-Powered Insights</h3>
+        <p style="margin: 10px 0; line-height: 1.6;">AI insights are being calculated...</p>
+      `
+    }
+
+    container.style.display = 'block'
+    container.classList.add('active')
+    
+    // Show big success message
+    showBigOrderMessage(order, currentStatus)
+
+    // Auto-refresh every 30 seconds
+    if (order.status !== 'delivered' && order.status !== 'cancelled') {
+      setTimeout(() => loadOrderStatus(orderId), 30000)
+    }
+
+  } catch (error) {
+    if (container) {
+      container.style.display = 'none'
+      container.classList.remove('active')
+    }
+    const messageDiv = document.getElementById('order-status-message')
+    if (messageDiv) {
+      messageDiv.style.display = 'none'
+    }
+    showNotification('Order not found. Please check your order number.', 'error')
+    console.error('Error loading order:', error)
+  }
+}
+
+// Chatbot functions
+async function sendChatMessage() {
+  const input = document.getElementById('chatbot-input')
+  if (!input) return
+  
+  const query = input.value.trim()
+
+  if (!query) return
+
+  // Add user message to chat
+  addChatMessage(query, 'user')
+  input.value = ''
+
+  // Show typing indicator
+  const typingId = addChatMessage('Thinking...', 'bot', true)
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/ai/chatbot`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        query: query,
+        orderId: currentOrderId
+      })
+    })
+
+    const data = await response.json()
+
+    // Remove typing indicator
+    removeChatMessage(typingId)
+
+    // Add bot response
+    if (data.needsOrderId && !currentOrderId) {
+      // Try to extract order ID from query
+      const idMatch = query.match(/(\d+)/)
+      if (idMatch) {
+        currentOrderId = idMatch[1]
+        const orderInput = document.getElementById('order-search')
+        if (orderInput) orderInput.value = currentOrderId
+        await loadOrderStatus(currentOrderId)
+        addChatMessage(`I found order #${currentOrderId}. Let me track it for you!`, 'bot')
+      } else {
+        addChatMessage(data.response, 'bot')
+      }
+    } else {
+      addChatMessage(data.response, 'bot')
+      
+      // If order data is returned, show it
+      const container = document.getElementById('order-status-container')
+      if (data.orderData && container && !container.classList.contains('active')) {
+        currentOrderId = data.orderData.id
+        const orderInput = document.getElementById('order-search')
+        if (orderInput) orderInput.value = currentOrderId
+        await loadOrderStatus(currentOrderId)
+      }
+    }
+  } catch (error) {
+    removeChatMessage(typingId)
+    addChatMessage('Sorry, I encountered an error. Please try again.', 'bot')
+    console.error('Chatbot error:', error)
+  }
+}
+
+function addChatMessage(message, type, isTyping = false) {
+  const messagesDiv = document.getElementById('chatbot-messages')
+  if (!messagesDiv) return
+  
+  const messageId = 'msg-' + Date.now()
+  
+  const messageDiv = document.createElement('div')
+  messageDiv.className = `chat-message ${type}`
+  messageDiv.id = messageId
+  messageDiv.style.cssText = 'margin-bottom: 15px; display: flex; gap: 10px;'
+  if (type === 'user') messageDiv.style.flexDirection = 'row-reverse'
+  
+  const bubbleStyle = type === 'user' 
+    ? 'max-width: 70%; padding: 12px 16px; border-radius: 15px; background: #e74c3c; color: white;'
+    : 'max-width: 70%; padding: 12px 16px; border-radius: 15px; background: #f0f0f0; color: #2c3e50;'
+  
+  messageDiv.innerHTML = `
+    <div class="message-bubble" style="${bubbleStyle}">
+      ${message.replace(/\n/g, '<br>')}
+    </div>
+  `
+
+  messagesDiv.appendChild(messageDiv)
+  messagesDiv.scrollTop = messagesDiv.scrollHeight
+
+  return messageId
+}
+
+function removeChatMessage(messageId) {
+  const message = document.getElementById(messageId)
+  if (message) {
+    message.remove()
+  }
+}
+
+function handleChatEnter(event) {
+  if (event.key === 'Enter') {
+    sendChatMessage()
+  }
+}
+
+// Show big order found message inline on the page
+function showBigOrderMessage(order, status) {
+  const messageDiv = document.getElementById('order-status-message')
+  if (!messageDiv) return
+
+  const statusMessages = {
+    pending: {
+      icon: '⏳',
+      title: 'Order Found!',
+      message: `Your order #${order.id} is pending confirmation. We'll notify you once it's confirmed!`,
+      color: '#f39c12'
+    },
+    confirmed: {
+      icon: '✅',
+      title: 'Order Confirmed!',
+      message: `Great news! Your order #${order.id} has been confirmed and will be prepared soon.`,
+      color: '#27ae60'
+    },
+    preparing: {
+      icon: '👨‍🍳',
+      title: 'Order Being Prepared!',
+      message: `Your order #${order.id} is currently being prepared in our kitchen. It won't be long!`,
+      color: '#3498db'
+    },
+    ready: {
+      icon: '🎉',
+      title: 'Order Ready!',
+      message: `Excellent! Your order #${order.id} is ready for pickup/delivery. Enjoy your meal!`,
+      color: '#9b59b6'
+    },
+    delivered: {
+      icon: '🚚',
+      title: 'Order Delivered!',
+      message: `Your order #${order.id} has been successfully delivered. Thank you for choosing us!`,
+      color: '#e67e22'
+    },
+    cancelled: {
+      icon: '❌',
+      title: 'Order Cancelled',
+      message: `Order #${order.id} has been cancelled. Please contact us if you have any questions.`,
+      color: '#e74c3c'
+    }
+  }
+
+  const statusInfo = statusMessages[status] || statusMessages.pending
+
+  messageDiv.innerHTML = `
+    <div class="status-message-icon" style="font-size: 3rem; margin-bottom: 15px; text-align: center;">${statusInfo.icon}</div>
+    <h2 class="status-message-title" style="margin: 0 0 15px 0; color: ${statusInfo.color}; font-size: 2rem; font-weight: 700; text-align: center;">${statusInfo.title}</h2>
+    <p class="status-message-text" style="margin: 0; color: #2c3e50; font-size: 1.1rem; line-height: 1.6; text-align: center;">${statusInfo.message}</p>
+  `
+
+  messageDiv.style.display = 'block'
+  messageDiv.style.background = `linear-gradient(135deg, ${statusInfo.color}15 0%, ${statusInfo.color}05 100%)`
+  messageDiv.style.borderLeft = `5px solid ${statusInfo.color}`
+}
+
+// Make functions globally available
+window.searchOrder = searchOrder
+window.sendChatMessage = sendChatMessage
+window.handleChatEnter = handleChatEnter

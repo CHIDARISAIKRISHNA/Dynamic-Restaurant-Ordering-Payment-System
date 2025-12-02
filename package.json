@@ -10,7 +10,7 @@
     "build": "next build",
     "lint": "next lint",
     "install-backend": "cd backend && npm install",
-    "install-all": "npm run install-backend",
+    "install-all": "npm run install-backend"
   },
   "keywords": ["restaurant", "fullstack", "nodejs", "express", "javascript", "sql", "sqlite", "api", "ordering-system"],
   "author": "Chidari Sai Krishna",

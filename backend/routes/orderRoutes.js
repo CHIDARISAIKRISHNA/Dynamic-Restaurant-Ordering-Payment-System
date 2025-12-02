@@ -21,9 +21,7 @@ function loadMenuItems() {
 router.get("/", (req, res) => {
   try {
     const limit = Number.parseInt(req.query.limit) || 50
-    console.log(`📋 Fetching orders with limit: ${limit}`)
     const orders = OrderFile.getAll(limit)
-    console.log(`✅ Fetched ${orders.length} orders from JSON file`)
     res.json(orders)
   } catch (error) {
     console.error("❌ Error fetching orders:", error)
@@ -53,12 +51,7 @@ router.post("/", (req, res) => {
   try {
     const { items, customerInfo, totalAmount, tax } = req.body
 
-    console.log("📦 Received order request:", {
-      customerName: customerInfo?.name,
-      customerPhone: customerInfo?.phone,
-      itemsCount: items?.length,
-      totalAmount
-    })
+    // Order request received
 
     if (!items || items.length === 0) {
       return res.status(400).json({ error: "Order must contain at least one item" })
@@ -95,8 +88,6 @@ router.post("/", (req, res) => {
       })
     }
 
-    console.log("💾 Saving order...")
-
     const newOrder = OrderFile.create({
       customer_name: customerInfo.name,
       customer_phone: customerInfo.phone,
@@ -104,8 +95,6 @@ router.post("/", (req, res) => {
       tax_amount: Number.parseFloat(tax) || 0,
       items: orderItems,
     })
-
-    console.log(`✅ Order #${newOrder.id} saved to JSON file!`)
 
     res.status(201).json({
       success: true,
@@ -125,8 +114,6 @@ router.put("/:id/status", (req, res) => {
     const { id } = req.params
     const { status } = req.body
 
-    console.log(`📝 Received status update request: Order #${id} → ${status}`)
-
     const validStatuses = ["pending", "confirmed", "preparing", "ready", "delivered", "cancelled"]
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
@@ -139,8 +126,6 @@ router.put("/:id/status", (req, res) => {
     if (!updatedOrder) {
       return res.status(404).json({ error: "Order not found" })
     }
-
-    console.log(`✅ Order #${id} status saved to JSON file as "${status}"`)
 
     res.json({
       success: true,

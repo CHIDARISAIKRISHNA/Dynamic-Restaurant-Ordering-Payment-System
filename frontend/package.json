@@ -1,0 +1,14 @@
+{
+  "name": "restaurant-frontend",
+  "version": "1.0.0",
+  "description": "Restaurant website frontend",
+  "private": true,
+  "scripts": {
+    "start": "npx http-server . -p 5500 -a localhost -o",
+    "serve": "npx http-server . -p 5500 -a localhost"
+  },
+  "keywords": ["restaurant", "frontend", "static"],
+  "author": "Chidari Sai Krishna",
+  "license": "MIT"
+}
+
