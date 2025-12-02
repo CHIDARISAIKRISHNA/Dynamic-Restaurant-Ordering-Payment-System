@@ -9,4 +9,5 @@ services:
       - key: NODE_ENV
         value: production
     healthCheckPath: /api/health
+    autoDeploy: true
 
